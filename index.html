@@ -53,6 +53,17 @@ body.idle,body.idle *{cursor:none!important}
 .energy .ehead b{font-family:Orbitron;font-weight:700;color:#c3cede}
 .escreen{border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#070c16,#03060c);box-shadow:0 0 0 2px #04060a,0 0 0 3px rgba(255,255,255,.08),inset 0 0 18px rgba(0,0,0,.9)}
 .escreen canvas{display:block;width:100%;aspect-ratio:232/200}
+.ebtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.ebtns button{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;color:#8fa0b8;cursor:pointer;padding:8px 4px 7px;border-radius:7px;white-space:nowrap;
+  background:linear-gradient(180deg,#2e3a50,#131a28);border:1px solid rgba(255,255,255,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -2px 3px rgba(0,0,0,.5),0 4px 0 #05080f,0 7px 12px rgba(0,0,0,.6);
+  text-shadow:0 -1px 0 #000;transition:transform .1s,box-shadow .15s,color .3s,filter .2s}
+.ebtns button:hover{filter:brightness(1.2)}
+.ebtns button:active{transform:translateY(3px);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 1px 0 #05080f,0 3px 6px rgba(0,0,0,.6)}
+.ebtns button.on{color:#2ff0cf;text-shadow:0 0 8px #2ff0cf;border-color:rgba(47,240,207,.55);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -2px 3px rgba(0,0,0,.5),0 4px 0 #05080f,0 7px 12px rgba(0,0,0,.6),0 0 14px -2px rgba(47,240,207,.7)}
+.ebtns button.on.run{animation:chgpulse 1.6s ease-in-out infinite}
+@keyframes chgpulse{50%{filter:brightness(1.35)}}
 /* ---------- navigační panel ---------- */
 .nav{position:relative;display:flex;gap:14px;align-items:stretch;padding:12px 14px 12px 12px;border:1px solid var(--dim);
   background:linear-gradient(180deg,rgba(10,30,55,.5),rgba(4,10,24,.3));backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
@@ -239,6 +250,10 @@ body.nolog .right{display:none}
   <div class="energy" id="energy">
     <div class="ehead"><span><b>ENERGETIKA</b></span><span id="eState">●</span></div>
     <div class="escreen"><canvas id="ecv"></canvas></div>
+    <div class="ebtns">
+      <button id="chgBtn" title="Ruční nabíjení baterie – 5 minut nebo do vypnutí (klávesa N)">⚡ NABÍJET</button>
+      <button id="autoChgBtn" title="Automatické nabíjení – samo se spustí pod 20 % a nabije baterii do 100 %">AUTO NABÍJENÍ</button>
+    </div>
   </div>
 
   <div class="panel right">
@@ -332,7 +347,7 @@ function toggle(k,src){
     if(k==='warp'&&!S.reactor)return deny('Hyperpohon: NEDOSTATEK ENERGIE – nejdřív zapni reaktor');
     if(k==='warp'&&RES.fuel<5)return deny('Hyperpohon: málo paliva pro skok (min. 5 %)');
     if(k==='reactor'&&RES.fuel<1)return deny('Reaktor: nádrž je prázdná – čekej na tanker');
-    if((k==='shield'||k==='scan')&&!S.reactor&&RES.bat<2)return deny('Baterie vybitá – zapni reaktor');
+    if((k==='shield'||k==='scan')&&!S.reactor&&RES.bat<2)return deny('Baterie vybitá – zapni nabíjení nebo reaktor');
   }
   S[k]=!S[k];
   if(k==='reactor'&&!S.reactor&&S.warp){S.warp=false;log('Hyperpohon nouzově vypnut – ztráta energie','w');}
@@ -852,21 +867,47 @@ function drawMeteors(dt,t){
 }
 
 /* ================= ZÁSOBY: PALIVO A BATERIE ================= */
-const RES={fuel:78,bat:64,fRate:0,bRate:0,refuel:0,refAdd:0,lowF:false,lowB:false,bubbles:[],chg:false};
-try{const r=JSON.parse(localStorage.getItem('kestrel7res')||'{}');if(r.fuel>=0)RES.fuel=Math.min(100,r.fuel);if(r.bat>=0)RES.bat=Math.min(100,r.bat);}catch(e){}
-setInterval(()=>{try{localStorage.setItem('kestrel7res',JSON.stringify({fuel:RES.fuel,bat:RES.bat}));}catch(e){}},5000);
-function updRes(dt){
+const RES={fuel:78,bat:64,fRate:0,bRate:0,refuel:0,refAdd:0,lowF:false,lowB:false,bubbles:[],chg:false,
+  man:false,manEnd:0,auto:false,autoRun:false};
+try{const r=JSON.parse(localStorage.getItem('kestrel7res')||'{}');if(r.fuel>=0)RES.fuel=Math.min(100,r.fuel);if(r.bat>=0)RES.bat=Math.min(100,r.bat);RES.auto=!!r.auto;}catch(e){}
+function saveRes(){try{localStorage.setItem('kestrel7res',JSON.stringify({fuel:RES.fuel,bat:RES.bat,auto:RES.auto}));}catch(e){}}
+setInterval(saveRes,5000);
+/* baterie: plné vybití trvá přesně 5 minut, plné nabití taky 5 minut (2,5 min = 50 %) */
+const BAT_PER_S=100/300,CHG_TIME=300000,AUTO_START=20;
+const mmss=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+function setManual(on,why){
+  if(on===RES.man)return;RES.man=on;
+  if(on){RES.manEnd=Date.now()+CHG_TIME;RES.autoRun=false;log('Nabíjení baterie zapnuto ručně – max. 5 minut','ok');tone(700,.12,'sine',.06,1100);}
+  else{log(why||'Nabíjení baterie vypnuto ručně',why?'ok':'');tone(900,.12,'sine',.05,500);}
+  updChgUI();
+}
+function setAutoChg(on){RES.auto=on;if(!on)RES.autoRun=false;saveRes();
+  log(on?`Automatické nabíjení zapnuto – spustí se pod ${AUTO_START} %`:'Automatické nabíjení vypnuto',on?'ok':'');tone(1800,.05,'square',.03);updChgUI();}
+const chgBtn=document.getElementById('chgBtn'),autoChgBtn=document.getElementById('autoChgBtn');
+function updChgUI(){
+  chgBtn.classList.toggle('on',RES.man);chgBtn.classList.toggle('run',RES.man);
+  chgBtn.textContent=RES.man?`⚡ NABÍJÍM ${mmss((RES.manEnd-Date.now())/1000)}`:'⚡ NABÍJET';
+  autoChgBtn.classList.toggle('on',RES.auto);autoChgBtn.classList.toggle('run',RES.autoRun);
+  autoChgBtn.textContent=RES.auto?(RES.autoRun?'AUTO: NABÍJÍ':'AUTO: ZAP'):'AUTO NABÍJENÍ';
+}
+chgBtn.onclick=()=>setManual(!RES.man);
+autoChgBtn.onclick=()=>setAutoChg(!RES.auto);
+addEventListener('keydown',e=>{if(e.key==='n'||e.key==='N')setManual(!RES.man);});
+let resLast=performance.now();setInterval(()=>{updRes();updChgUI();},250);updChgUI();
+function updRes(){
+  const now=performance.now(),dt=Math.min(5,(now-resLast)/1000);resLast=now;
   // palivo (deuterium): spotřeba reaktoru a hyperpohonu, sběr vodíku ze slunečního větru
   const fr=.006-(S.reactor?.022:0)-(S.warp?.33:0);
-  // baterie: solární panely + reaktor vs. spotřeba stanice
-  let br=(S.warp?0:.05)+(S.reactor?.26:0)-.058;
-  if(!S.reactor){if(S.shield)br-=.12;if(S.scan)br-=.045;}else if(S.shield)br-=.03;
-  if(S.alert)br-=.02;if(S.warp)br-=.08;
+  // baterie
+  if(RES.man&&Date.now()>=RES.manEnd)setManual(false,'Nabíjení dokončeno – uplynulo 5 minut');
+  if(RES.auto&&!RES.man&&!RES.autoRun&&RES.bat<=AUTO_START){RES.autoRun=true;log('Automatické nabíjení: baterie pod 20 % – nabíjím','ok');updChgUI();}
+  if(RES.autoRun&&RES.bat>=100){RES.autoRun=false;log('Automatické nabíjení: baterie nabita na 100 %','ok');updChgUI();}
+  const charging=RES.man||RES.autoRun,br=charging?BAT_PER_S:-BAT_PER_S;
   RES.fuel=Math.max(0,Math.min(100,RES.fuel+fr*dt));RES.bat=Math.max(0,Math.min(100,RES.bat+br*dt));
-  RES.fRate+=(fr*60-RES.fRate)*Math.min(1,dt*2);RES.bRate+=(br*60-RES.bRate)*Math.min(1,dt*2);
-  RES.chg=br>0&&RES.bat<100;RES.refuel=Math.max(0,RES.refuel-dt*.4);
+  RES.fRate+=(fr*60-RES.fRate)*Math.min(1,dt*2);RES.bRate=(charging&&RES.bat>=100)?0:br*60;
+  RES.chg=charging&&RES.bat<100;RES.refuel=Math.max(0,RES.refuel-dt*.4);
   if(RES.fuel<=0&&S.reactor){log('Reaktor odstaven – došlo palivo!','w');toggle('reactor','auto');}
-  if(RES.bat<=0&&!S.reactor&&(S.shield||S.scan)){log('Baterie vybitá – štíty a skener odpojeny','w');if(S.shield)toggle('shield','auto');if(S.scan)toggle('scan','auto');}
+  if(RES.bat<=0&&!S.reactor&&(S.shield||S.scan)){log('Baterie vybitá – štíty a skener odpojeny. Zapni nabíjení!','w');if(S.shield)toggle('shield','auto');if(S.scan)toggle('scan','auto');}
   if(RES.fuel<15&&!RES.lowF){RES.lowF=true;log(`Palivo dochází – zbývá ${RES.fuel.toFixed(0)} %`,'w');}if(RES.fuel>25)RES.lowF=false;
   if(RES.bat<15&&!RES.lowB){RES.lowB=true;log(`Baterie slabá – ${RES.bat.toFixed(0)} %`,'w');}if(RES.bat>25)RES.lowB=false;
 }
@@ -911,7 +952,7 @@ function drawEnergy(dt,t){
   if(RES.refuel>0){x.fillStyle=`rgba(125,255,180,${RES.refuel})`;x.font='bold 12px "Share Tech Mono",monospace';x.fillText('+'+RES.refAdd.toFixed(0)+' %',tx+tw/2,ly-6-(1-RES.refuel)*24);}
   /* ---- baterie ---- */
   const bx=146,by=24,bw=58,bh=110,b=RES.bat/100,warnB=RES.bat<15&&Math.sin(t*6)>0;
-  const bc=RES.bat<15?'255,77,94':RES.bat<35?'255,209,102':'125,255,160';
+  const bc=RES.bat<15?'255,77,94':RES.bat<35?'255,209,102':'47,240,207'; // modrozelená
   x.fillStyle='#5b6880';x.beginPath();x.roundRect(bx+bw/2-12,by-8,24,10,3);x.fill();
   x.fillStyle='#04070d';x.beginPath();x.roundRect(bx,by,bw,bh,7);x.fill();
   x.strokeStyle=warnB?'#ff4d5e':'#7d8ba3';x.lineWidth=2.2;x.stroke();
@@ -922,7 +963,7 @@ function drawEnergy(dt,t){
       x.fillStyle=`rgba(${bc},${a})`;x.shadowColor=`rgba(${bc},.8)`;x.shadowBlur=6;x.fillRect(bx+5,yy,(bw-10),sh);x.shadowBlur=0;}}
   if(RES.chg){const sy=by+bh-((t*40)%bh);g=x.createLinearGradient(0,sy-14,0,sy+14);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,'rgba(255,255,255,.22)');g.addColorStop(1,'rgba(255,255,255,0)');
     x.save();x.beginPath();x.roundRect(bx,by,bw,bh,7);x.clip();x.fillStyle=g;x.fillRect(bx,sy-14,bw,28);x.restore();
-    const p=.6+.4*Math.sin(t*5),cx2=bx+bw/2,cy2=by+bh/2;x.save();x.translate(cx2,cy2);x.fillStyle=`rgba(255,240,120,${p})`;x.shadowColor='rgba(255,230,90,.9)';x.shadowBlur=12;
+    const p=.6+.4*Math.sin(t*5),cx2=bx+bw/2,cy2=by+bh/2;x.save();x.translate(cx2,cy2);x.fillStyle=`rgba(235,255,250,${p})`;x.shadowColor='rgba(47,240,207,.95)';x.shadowBlur=14;
     x.beginPath();x.moveTo(3,-22);x.lineTo(-11,3);x.lineTo(-1,3);x.lineTo(-4,22);x.lineTo(11,-4);x.lineTo(1,-4);x.closePath();x.fill();x.restore();}
   /* ---- popisky ---- */
   x.textAlign='center';
@@ -932,7 +973,9 @@ function drawEnergy(dt,t){
   lab(tx+tw/2+4,'PALIVO',RES.fuel,RES.fRate,RES.fuel<15?'#ff4d5e':'#ffc463');
   lab(bx+bw/2,'BATERIE',RES.bat,RES.bRate,`rgb(${bc})`);
   x.textAlign='left';
-  const st=$('eState');const ok=RES.fuel>=15&&RES.bat>=15;st.textContent=RES.chg?'⚡ NABÍJENÍ':ok?'● V NORMĚ':'⚠ NÍZKÉ ZÁSOBY';st.style.color=RES.chg?'#ffe066':ok?'#7dffb4':'#ff4d5e';
+  const st=$('eState'),full=RES.bat>=99.95;
+  st.textContent=RES.chg?`⚡ PLNÁ ZA ${mmss((100-RES.bat)/BAT_PER_S)}`:(RES.man||RES.autoRun)&&full?'⚡ NABITO':RES.bat<=0?'⚠ BATERIE VYBITÁ':`▼ VYBITÁ ZA ${mmss(RES.bat/BAT_PER_S)}`;
+  st.style.color=RES.chg||((RES.man||RES.autoRun)&&full)?'#2ff0cf':RES.bat<15?'#ff4d5e':'#8b98ad';
 }
 
 /* ================= HVĚZDNÁ MAPA ================= */
@@ -1121,7 +1164,6 @@ function frame(now){
   drawMeteors(dt,t);
   try{drawCam1(dt,t);drawCam2(dt,t);}catch(e){console.error(e);}
   try{drawNav(dt,t);}catch(e){console.error(e);}
-  updRes(dt);
   try{drawEnergy(dt,t);}catch(e){console.error(e);}
   try{drawSmap(dt,t);}catch(e){console.error(e);}
   if(warpA>.01){const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.2,W/2,H/2,Math.max(W,H)*.7);g.addColorStop(0,'rgba(80,140,255,0)');g.addColorStop(1,`rgba(80,140,255,${.22*warpA})`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
@@ -1649,7 +1691,7 @@ document.getElementById('autobtn').onclick=()=>setAuto(!UI.auto);
 if(UI.auto){const b=document.getElementById('autobtn');b.classList.add('act');b.textContent='⟳ AUTO: ZAP';}
 addEventListener('resize',resize);
 resize();sizeCams();applyLog();renderTV();setInterval(renderTV,1000);loadSlavia();setInterval(loadSlavia,6*3600*1000);refreshUI();requestAnimationFrame(frame);
-[['Systémy můstku inicializovány','ok'],['Spojení s orbitální sítí navázáno',''],['Tip: 1–5 spínače · A autopilot · M zvuk · F celá obrazovka · H/dvojklik skryje panely · klik na kameru zvětší · klik na hvězdu = cíl skoku','']].forEach((m,i)=>setTimeout(()=>log(m[0],m[1]),400+i*900));
+[['Systémy můstku inicializovány','ok'],['Spojení s orbitální sítí navázáno',''],['Tip: 1–5 spínače · A autopilot · N nabíjení · M zvuk · F celá obrazovka · H/dvojklik skryje panely · klik na kameru zvětší · klik na hvězdu = cíl skoku','']].forEach((m,i)=>setTimeout(()=>log(m[0],m[1]),400+i*900));
 })();
 </script>
 </body>
