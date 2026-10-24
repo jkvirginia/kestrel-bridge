@@ -91,7 +91,47 @@ body.alert .banner{animation:blink 1s steps(2) infinite}
 .sw.on .st{color:var(--a)}
 .sw.deny{animation:deny .5s}
 @keyframes deny{0%,100%{transform:rotateX(14deg)}20%{transform:rotateX(14deg) translateX(-6px)}40%{transform:rotateX(14deg) translateX(6px)}60%{transform:rotateX(14deg) translateX(-4px)}80%{transform:rotateX(14deg) translateX(3px)}}
-.cams{position:absolute;left:24px;bottom:26px;display:flex;align-items:flex-end;gap:14px;pointer-events:auto;z-index:2}
+.leftstack{position:absolute;left:24px;bottom:26px;display:flex;flex-direction:column;gap:16px;pointer-events:auto;z-index:2}
+.cams{display:flex;align-items:flex-end;gap:14px}
+body.nolog .right{display:none}
+.tv{padding:8px 9px 11px;border-radius:14px;
+  background:
+    radial-gradient(circle at 9px 9px,#a3b0c4 0 1.4px,#161c28 2px,transparent 3px),
+    radial-gradient(circle at calc(100% - 9px) 9px,#a3b0c4 0 1.4px,#161c28 2px,transparent 3px),
+    radial-gradient(circle at 9px calc(100% - 9px),#a3b0c4 0 1.4px,#161c28 2px,transparent 3px),
+    radial-gradient(circle at calc(100% - 9px) calc(100% - 9px),#a3b0c4 0 1.4px,#161c28 2px,transparent 3px),
+    linear-gradient(165deg,#36435c 0%,#1a2234 38%,#0c111c 100%);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -4px 8px rgba(0,0,0,.55),0 7px 0 #05080f,0 18px 26px rgba(0,0,0,.75)}
+.tvscreen{position:relative;border-radius:8px;overflow:hidden;padding:11px 16px 30px;color:#e9f1ff;
+  background:linear-gradient(112deg,rgba(214,30,40,.42) 0 14%,rgba(255,255,255,.1) 14% 17%,rgba(214,30,40,.22) 17% 20%,transparent 20%),
+    radial-gradient(ellipse at 75% -10%,rgba(70,100,170,.4),transparent 60%),linear-gradient(180deg,#0c1324,#060a14);
+  box-shadow:0 0 0 2px #04060a,0 0 0 3px rgba(255,255,255,.08)}
+.tvscreen::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)}
+.tvscreen::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,0) 35%);box-shadow:inset 0 0 18px rgba(0,0,0,.85)}
+.tvtop{display:flex;justify-content:space-between;align-items:center;font-family:Orbitron;font-size:10px;letter-spacing:.2em}
+.tvlogo{color:#fff;font-weight:700}.tvlogo b{color:#ff3a44}
+.tvlive{padding:3px 8px;border-radius:3px;background:#d61e28;color:#fff;font-weight:700;font-size:9px;box-shadow:0 0 10px rgba(214,30,40,.6)}
+.tvlive.live{animation:blink 1s steps(2) infinite}
+.tvcomp{margin-top:9px;font-size:10px;letter-spacing:.22em;color:#9fb3d9}
+.tvteams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin:8px 0 9px}
+.team{font-family:Orbitron;font-weight:900;font-size:clamp(11px,.82vw,16px);letter-spacing:.04em;line-height:1.15;color:#d7e2f5}
+.team small{display:block;font-family:'Share Tech Mono';font-weight:400;font-size:9px;letter-spacing:.22em;color:#7f93b8;margin-top:4px}
+.team.r{text-align:right}
+.team.sl span{color:#fff;text-shadow:0 0 12px rgba(255,50,60,.9)}
+.team.sl span::before{content:"";display:inline-block;width:11px;height:11px;margin-right:6px;border-radius:2px;background:linear-gradient(90deg,#fff 50%,#e2202b 50%);vertical-align:-1px;box-shadow:0 0 6px rgba(255,255,255,.4)}
+.team.r.sl span::before{margin:0 6px 0 0}
+.vs{font-family:Orbitron;font-size:12px;font-weight:700;color:#ff3a44;padding:6px 8px;border:1px solid rgba(255,58,68,.6);border-radius:4px;box-shadow:inset 0 0 8px rgba(255,58,68,.3)}
+.tvinfo{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+.tvwhen{font-family:Orbitron;font-weight:700;font-size:14px;color:#fff;letter-spacing:.04em}
+.tvwhere{font-size:11px;color:#9fb3d9;margin-top:3px}
+.tvcount{text-align:right;color:#ffd166;font-size:12px;letter-spacing:.06em;text-shadow:0 0 8px rgba(255,209,102,.5)}
+.tvnote{text-align:right;font-size:9px;color:#7f93b8;margin-top:2px}
+.tvnext{margin-top:8px;font-size:10px;color:#8ea2c6;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tvticker{position:absolute;left:0;right:0;bottom:0;height:20px;background:linear-gradient(180deg,#e2202b,#a8141c);overflow:hidden;white-space:nowrap;font-size:11px;line-height:20px;color:#fff;letter-spacing:.06em}
+.tvticker span{display:inline-block;padding-left:100%;animation:tick 30s linear infinite}
+@keyframes tick{to{transform:translateX(-100%)}}
+@media (max-height:820px){.tv{display:none}}
 .cam{width:clamp(180px,12vw,236px);padding:7px 8px 9px;border-radius:12px;cursor:zoom-in;transition:width .35s ease;
   background:
     radial-gradient(circle at 9px 9px,#a3b0c4 0 1.4px,#161c28 2px,transparent 3px),
@@ -107,7 +147,7 @@ body.alert .banner{animation:blink 1s steps(2) infinite}
 .screen{position:relative;border-radius:6px;overflow:hidden;background:#000;box-shadow:0 0 0 2px #04060a,0 0 0 3px rgba(255,255,255,.08)}
 .screen canvas{display:block;width:100%;aspect-ratio:16/10}
 .screen::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:6px;background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,0) 35%);box-shadow:inset 0 0 14px rgba(0,0,0,.9)}
-@media (max-width:900px){.left,.right,.cams{display:none}.deck{left:50%!important}.deck{transform:translateX(-50%) scale(.62);transform-origin:50% 100%;bottom:10px}}
+@media (max-width:900px){.left,.right,.leftstack{display:none}.deck{left:50%!important}.deck{transform:translateX(-50%) scale(.62);transform-origin:50% 100%;bottom:10px}}
 </style>
 </head>
 <body>
@@ -130,6 +170,7 @@ body.alert .banner{animation:blink 1s steps(2) infinite}
   <div class="banner">⚠ ČERVENÝ POPLACH ⚠</div>
 
   <div class="tools">
+    <button id="logbtn" title="Skrýt / zobrazit systémový záznam">☰ ZÁZNAM</button>
     <button id="snd">♪ ZVUK: VYP</button>
     <button id="fs" title="Celá obrazovka">⛶</button>
     <button id="hide" title="Skrýt panely (dvojklik nebo H vrátí)">◐</button>
@@ -151,9 +192,19 @@ body.alert .banner{animation:blink 1s steps(2) infinite}
     <div id="log"></div>
   </div>
 
+  <div class="leftstack">
+  <div class="tv"><div class="tvscreen">
+    <div class="tvtop"><span class="tvlogo"><b>◉</b> KESTREL SPORT</span><span class="tvlive" id="tvLive">PŘÍŠTÍ ZÁPAS</span></div>
+    <div class="tvcomp" id="tvComp">CHANCE LIGA</div>
+    <div class="tvteams"><div class="team" id="tvHome"></div><div class="vs">VS</div><div class="team r" id="tvAway"></div></div>
+    <div class="tvinfo"><div><div class="tvwhen" id="tvWhen"></div><div class="tvwhere" id="tvWhere"></div></div><div><div class="tvcount" id="tvCount"></div><div class="tvnote" id="tvNote"></div></div></div>
+    <div class="tvnext" id="tvNext"></div>
+    <div class="tvticker"><span id="tvTicker"></span></div>
+  </div></div>
   <div class="cams">
     <div class="cam"><div class="camhead"><span>CAM 03</span><span class="rec">● REC</span></div><div class="screen"><canvas id="cam1"></canvas></div></div>
     <div class="cam"><div class="camhead"><span>CAM 07</span><span class="rec">● REC</span></div><div class="screen"><canvas id="cam2"></canvas></div></div>
+  </div>
   </div>
 
   <div class="deck" id="deck"></div>
@@ -276,12 +327,12 @@ function resize(){
   const m=Math.min(W,H);
   ST={cx:W*0.48,cy:H*0.47,R:m*0.26};
   buildNebula();buildPlanet();buildHex();
-  const camW=Math.min(236,Math.max(180,W*.12)),camTop=H-26-((camW-16)/1.6+16+19);
-  const lp=document.querySelector('.left').getBoundingClientRect();
-  LAY={dnaTop:Math.max(lp.bottom+48,H*.4),dnaBase:camTop-40};
+  layout();
   if(typeof sizeCams==='function')sizeCams();
   if(!stars.length)for(let i=0;i<950;i++)stars.push(newStar(true));
 }
+function layout(){const rp=document.querySelector('.right').getBoundingClientRect(),nl=document.body.classList.contains('nolog');
+  LAY={dnaTop:(nl||!rp.height)?Math.max(175,H*.18):Math.max(rp.bottom+48,H*.35),dnaBase:H-95};}
 function mkCanvas(){const c=document.createElement('canvas');c.width=W*DPR;c.height=H*DPR;const x=c.getContext('2d');x.setTransform(DPR,0,0,DPR,0,0);return[c,x];}
 
 function buildNebula(){
@@ -304,30 +355,6 @@ function buildNebula(){
   }
   for(let i=0;i<1200;i++){x.fillStyle=`rgba(255,255,255,${rand(.05,.5)})`;x.fillRect(rand(0,W),rand(0,H),.8,.8);}
   x.globalCompositeOperation='source-over';
-}
-
-function buildPlanet(){
-  const[c,x]=mkCanvas();bgPlan=c;const m=Math.min(W,H);
-  const px=W*0.88,py=H*1.13,pr=m*0.72;PL={px,py,pr};
-  let g=x.createRadialGradient(px,py,pr*.96,px,py,pr*1.14);g.addColorStop(0,'rgba(90,190,255,.55)');g.addColorStop(.4,'rgba(60,140,255,.18)');g.addColorStop(1,'rgba(60,140,255,0)');
-  x.fillStyle=g;x.beginPath();x.arc(px,py,pr*1.14,0,TAU);x.fill();
-  g=x.createRadialGradient(px-pr*.45,py-pr*.55,pr*.05,px,py,pr);
-  g.addColorStop(0,'#6cc4f0');g.addColorStop(.3,'#2468a3');g.addColorStop(.7,'#0c2a4c');g.addColorStop(1,'#030b18');
-  x.fillStyle=g;x.beginPath();x.arc(px,py,pr,0,TAU);x.fill();
-  x.save();x.beginPath();x.arc(px,py,pr,0,TAU);x.clip();
-  for(let i=0;i<22;i++){x.globalAlpha=rand(.04,.12);x.fillStyle=i%2?'#bfeaff':'#06152b';x.beginPath();x.ellipse(px+rand(-40,40),py-pr*.98+i*pr*.09,pr*1.35,rand(pr*.01,pr*.04),-.14,0,TAU);x.fill();}
-  for(let i=0;i<70;i++){x.globalAlpha=rand(.03,.09);x.fillStyle='#fff';x.beginPath();x.ellipse(px+rand(-pr,pr*.2),py+rand(-pr,-pr*.1),rand(20,90),rand(4,14),-.14+rand(-.1,.1),0,TAU);x.fill();}
-  x.globalAlpha=1;
-  for(let i=0;i<260;i++){const a=rand(-2.6,-1.0),r=pr*rand(.55,.98);const cx=px+Math.cos(a)*r,cy=py+Math.sin(a)*r;if(cx-px>-pr*.1){x.fillStyle=`rgba(255,${180+rand(0,60)|0},90,${rand(.15,.6)})`;x.fillRect(cx,cy,1.2,1.2);}}
-  g=x.createRadialGradient(px+pr*.55,py+pr*.25,pr*.1,px+pr*.35,py+pr*.15,pr*1.25);g.addColorStop(0,'rgba(0,0,10,.9)');g.addColorStop(.6,'rgba(0,0,10,.5)');g.addColorStop(1,'rgba(0,0,10,0)');
-  x.fillStyle=g;x.fillRect(0,0,W,H);x.restore();
-  x.strokeStyle='rgba(160,230,255,.7)';x.lineWidth=2;x.beginPath();x.arc(px,py,pr,Math.PI*1.02,Math.PI*1.42);x.stroke();
-  const mx=W*0.29,my=H*0.17,mr=m*0.04;
-  g=x.createRadialGradient(mx-mr*.4,my-mr*.4,mr*.1,mx,my,mr);g.addColorStop(0,'#d8d4cc');g.addColorStop(.6,'#7b7670');g.addColorStop(1,'#1a1816');
-  x.fillStyle=g;x.beginPath();x.arc(mx,my,mr,0,TAU);x.fill();
-  x.save();x.beginPath();x.arc(mx,my,mr,0,TAU);x.clip();
-  for(let i=0;i<9;i++){x.fillStyle='rgba(40,35,30,.35)';x.beginPath();x.arc(mx+rand(-mr,mr)*.7,my+rand(-mr,mr)*.7,rand(mr*.06,mr*.2),0,TAU);x.fill();}
-  x.fillStyle='rgba(0,0,8,.55)';x.beginPath();x.arc(mx+mr*.55,my+mr*.45,mr*1.05,0,TAU);x.fill();x.restore();
 }
 
 function buildHex(){
@@ -373,7 +400,7 @@ function drawStars(dt,t){
 
 /* ---------- DNA hologram ---------- */
 function drawDNA(dt,t){
-  const x0=Math.max(120,Math.min(W*.09,190)),base=LAY.dnaBase,top=LAY.dnaTop,len=base-top-40;
+  const x0=W-Math.max(120,Math.min(W*.09,190)),base=LAY.dnaBase,top=LAY.dnaTop,len=base-top-40;
   if(len<120||W<900)return;
   dnaRot+=dt*(.6+1.5*reactA);
   if(S.scan){dnaSeq+=dt*1.8;if(dnaSeq>=100){dnaSeq=0;log('Sekvenace genomu vzorku 7G-α dokončena','ok');}}
@@ -651,7 +678,9 @@ function frame(now){
   sweep+=dt*1.6;if(sweep>TAU){sweep-=TAU;if(S.scan)tone(1500,.25,'sine',.04);}
   ctx.drawImage(bgNeb,0,0,W,H);
   drawStars(dt,t);
+  drawSkyFx(dt,t);
   ctx.save();ctx.globalAlpha=1-warpA*.35;ctx.drawImage(bgPlan,0,0,W,H);ctx.restore();
+  drawFreighter(dt,t);
   drawDNA(dt,t);
   drawScanner(dt,t);
   drawShips(dt,t);
@@ -986,9 +1015,197 @@ function drawCam2(dt,t){
     x.fillStyle='rgba(0,0,0,.6)';x.fillRect(0,h/2-f,w,f*2);x.fillStyle='#fff';x.textAlign='center';x.fillText('SIGNÁL ZTRACEN',w/2,h/2+f*.35);x.restore();}
 }
 
+/* ================= PROCEDURÁLNÍ PLANETY ================= */
+function hsh(x,y,z){let h=(Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(z,1274126177))|0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296;}
+function vnoise(x,y,z){const xi=Math.floor(x),yi=Math.floor(y),zi=Math.floor(z),xf=x-xi,yf=y-yi,zf=z-zi;
+  const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf),w=zf*zf*(3-2*zf);
+  const a=hsh(xi,yi,zi),b=hsh(xi+1,yi,zi),c=hsh(xi,yi+1,zi),d=hsh(xi+1,yi+1,zi),e=hsh(xi,yi,zi+1),f=hsh(xi+1,yi,zi+1),g=hsh(xi,yi+1,zi+1),h=hsh(xi+1,yi+1,zi+1);
+  const x1=a+(b-a)*u,x2=c+(d-c)*u,x3=e+(f-e)*u,x4=g+(h-g)*u,y1=x1+(x2-x1)*v,y2=x3+(x4-x3)*v;return y1+(y2-y1)*w;}
+function fbm(x,y,z,o){let s=0,a=.5,f=1,n=0;for(let i=0;i<o;i++){s+=a*vnoise(x*f,y*f,z*f);n+=a;a*=.5;f*=2.03;}return s/n;}
+const mixv=(a,b,t)=>a+(b-a)*t,sst=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
+function planetTex(cx,cy,r,kind,S,seed){
+  const x0=Math.max(0,Math.floor(cx-r-2)),y0=Math.max(0,Math.floor(cy-r-2)),x1=Math.min(W,Math.ceil(cx+r+2)),y1=Math.min(H,Math.ceil(cy+r+2));
+  if(x1<=x0||y1<=y0)return null;
+  const tw=Math.max(1,Math.ceil((x1-x0)*S)),th=Math.max(1,Math.ceil((y1-y0)*S));
+  const cv2=document.createElement('canvas');cv2.width=tw;cv2.height=th;const c2=cv2.getContext('2d'),img=c2.createImageData(tw,th),d=img.data;
+  const Lx=-.62,Ly=-.52,Lz=.59,Hn=Math.hypot(Lx,Ly,Lz+1),Hx=Lx/Hn,Hy=Ly/Hn,Hz=(Lz+1)/Hn;
+  for(let j=0;j<th;j++)for(let i=0;i<tw;i++){
+    const X=x0+(i+.5)/S,Y=y0+(j+.5)/S,nx=(X-cx)/r,ny=(Y-cy)/r,d2=nx*nx+ny*ny;if(d2>=1)continue;
+    const nz=Math.sqrt(1-d2),lam=Math.max(0,nx*Lx+ny*Ly+nz*Lz),edge=Math.min(1,(1-Math.sqrt(d2))*r*S*1.5);
+    const tx=nx*2+seed,ty=ny*2,tz=nz*2;let R,G,B;
+    if(kind==='ocean'){
+      const h=fbm(tx*1.3,ty*1.3,tz*1.3,6),ocean=h<.53;
+      if(ocean){const t2=sst(.3,.53,h);R=mixv(6,40,t2);G=mixv(24,130,t2);B=mixv(70,190,t2);}
+      else{const e=(h-.53)/.47;R=mixv(60,175,sst(0,.55,e));G=mixv(115,140,sst(0,.55,e));B=mixv(65,90,e);
+        if(e>.45){const s2=sst(.45,.7,e);R=mixv(R,235,s2);G=mixv(G,240,s2);B=mixv(B,245,s2);}}
+      const cl=sst(.52,.78,fbm(tx*2.2+30,ty*5+11,tz*2.2,5))*.9;
+      R=mixv(R,255,cl);G=mixv(G,255,cl);B=mixv(B,255,cl);
+      const sh=.05+.95*lam;R*=sh;G*=sh;B*=sh;
+      if(ocean&&cl<.35){const sp=Math.pow(Math.max(0,nx*Hx+ny*Hy+nz*Hz),60)*220*(1-cl);R+=sp;G+=sp;B+=sp;}
+      if(!ocean&&lam<.12&&cl<.4){const ci=sst(.55,.75,vnoise(tx*30,ty*30,tz*30))*(1-lam/.12)*(1-cl);R+=255*ci;G+=170*ci;B+=70*ci;}
+      const rim=Math.pow(1-nz,2.2)*(.25+.75*Math.min(1,lam*1.8+.15));R=mixv(R,110,rim*.8);G=mixv(G,190,rim*.8);B=mixv(B,255,rim*.8);
+    }else if(kind==='moon'){
+      const h=fbm(tx*2,ty*2,tz*2,5),mare=sst(.4,.6,fbm(tx*.8+9,ty*.8,tz*.8,3));
+      const cr=Math.pow(1-Math.abs(vnoise(tx*7,ty*7,tz*7)*2-1),6),cr2=Math.pow(1-Math.abs(vnoise(tx*7+.12,ty*7+.12,tz*7)*2-1),6);
+      const g=mixv(95,210,h)*(1-mare*.38)-cr*45+cr2*40,sh=Math.pow(lam,.8);R=g*sh;G=g*.97*sh;B=g*.93*sh;
+    }else{
+      const v=ny*7+(fbm(tx,ty*2,tz,4)-.5)*2.2,b=Math.sin(v*2.2)*.5+.5,b2=Math.sin(v*5.1+1)*.5+.5;
+      R=mixv(150,235,b)*mixv(.85,1.05,b2);G=mixv(95,200,b)*mixv(.85,1.05,b2);B=mixv(60,150,b)*mixv(.8,1,b2);
+      const sp=Math.hypot(nx-.25,(ny-.2)*2);if(sp<.18){const s3=1-sp/.18;R=mixv(R,200,s3*.8);G=mixv(G,90,s3*.8);B=mixv(B,60,s3*.8);}
+      const sh=.04+.96*lam;R*=sh;G*=sh;B*=sh;
+    }
+    const k=(j*tw+i)*4;d[k]=R;d[k+1]=G;d[k+2]=B;d[k+3]=255*edge;
+  }
+  c2.putImageData(img,0,0);return{cv:cv2,x:x0,y:y0,w:x1-x0,h:y1-y0};
+}
+function planetRing(x,gx,gy,gr,back){x.save();x.translate(gx,gy);x.rotate(-.38);
+  const al=[.5,.32,.62,.22,.42];for(let i=0;i<5;i++){const rr=gr*(1.45+i*.17);x.strokeStyle=`rgba(${225-i*10},${198-i*12},${160-i*15},${al[i]})`;x.lineWidth=gr*.13;x.beginPath();x.ellipse(0,0,rr,rr*.28,0,back?Math.PI:0,back?TAU:Math.PI);x.stroke();}
+  x.restore();}
+function buildPlanet(){
+  const[c,x]=mkCanvas();bgPlan=c;const m=Math.min(W,H);
+  const px=W*0.88,py=H*1.13,pr=m*0.72;PL={px,py,pr};
+  let g=x.createRadialGradient(px,py,pr*.97,px,py,pr*1.16);g.addColorStop(0,'rgba(100,190,255,.6)');g.addColorStop(.35,'rgba(60,140,255,.2)');g.addColorStop(1,'rgba(60,140,255,0)');
+  x.fillStyle=g;x.beginPath();x.arc(px,py,pr*1.16,0,TAU);x.fill();
+  const tp=planetTex(px,py,pr,'ocean',.55,3.7);if(tp)x.drawImage(tp.cv,tp.x,tp.y,tp.w,tp.h);
+  x.strokeStyle='rgba(170,230,255,.6)';x.lineWidth=2;x.beginPath();x.arc(px,py,pr,Math.PI*1.02,Math.PI*1.42);x.stroke();
+  const mx=W*.29,my=H*.17,mr=m*.042;
+  const tm=planetTex(mx,my,mr,'moon',1.5,11.3);if(tm)x.drawImage(tm.cv,tm.x,tm.y,tm.w,tm.h);
+  const gx=W*.665,gy=H*.115,gr=m*.032;
+  planetRing(x,gx,gy,gr,true);const tg=planetTex(gx,gy,gr,'gas',2,7.1);if(tg)x.drawImage(tg.cv,tg.x,tg.y,tg.w,tg.h);planetRing(x,gx,gy,gr,false);
+}
+
+/* ================= KOMETY A PADAJÍCÍ HVĚZDY ================= */
+const mets=[],comets=[];let nextMet=3,nextCom=9;
+function drawSkyFx(dt,t){
+  nextMet-=dt;
+  if(nextMet<=0&&!S.warp){nextMet=rand(1.5,5);const right=Math.random()<.5,ang=right?rand(.3,.8):Math.PI-rand(.3,.8);
+    mets.push({x:rand(W*.05,W*.95),y:rand(0,H*.45),a:ang,sp:rand(700,1400),len:rand(90,240),life:0,max:rand(.45,.95)});}
+  ctx.lineCap='round';
+  for(let i=mets.length-1;i>=0;i--){const m=mets[i];m.life+=dt;if(m.life>m.max){mets.splice(i,1);continue;}
+    m.x+=Math.cos(m.a)*m.sp*dt;m.y+=Math.sin(m.a)*m.sp*dt;const al=Math.sin(m.life/m.max*Math.PI);
+    const tx=m.x-Math.cos(m.a)*m.len,ty=m.y-Math.sin(m.a)*m.len,g=ctx.createLinearGradient(m.x,m.y,tx,ty);
+    g.addColorStop(0,`rgba(255,255,255,${al})`);g.addColorStop(.3,`rgba(170,210,255,${al*.5})`);g.addColorStop(1,'rgba(150,200,255,0)');
+    ctx.strokeStyle=g;ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(m.x,m.y);ctx.lineTo(tx,ty);ctx.stroke();glow(m.x,m.y,5,'255,255,255',al*.8);}
+  nextCom-=dt;
+  if(nextCom<=0&&!comets.length){nextCom=rand(22,40);const lr=Math.random()<.5;
+    comets.push({x:lr?-90:W+90,y:rand(H*.05,H*.38),vx:(lr?1:-1)*rand(W/30,W/17),vy:rand(-8,14),hue:Math.random()<.5?'150,220,255':'180,255,220'});
+    if(Math.random()<.5)log('Astronomie: sektorem prolétá kometa','');}
+  for(let i=comets.length-1;i>=0;i--){const c=comets[i];c.x+=c.vx*dt;c.y+=c.vy*dt;if(c.x<-800||c.x>W+800){comets.splice(i,1);continue;}
+    const vl=Math.hypot(c.vx,c.vy),bx=-c.vx/vl*.9+.18,by=-c.vy/vl*.9+.1,bl=Math.hypot(bx,by),dx=bx/bl,dy=by/bl,L=Math.min(W,H)*.24,nx=-dy,ny=dx;
+    let g=ctx.createLinearGradient(c.x,c.y,c.x+dx*L,c.y+dy*L);g.addColorStop(0,'rgba(255,240,210,.5)');g.addColorStop(1,'rgba(255,240,210,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(c.x+nx*3,c.y+ny*3);ctx.quadraticCurveTo(c.x+dx*L*.5+nx*L*.05,c.y+dy*L*.5+ny*L*.05,c.x+dx*L+nx*L*.09,c.y+dy*L+ny*L*.09);
+    ctx.lineTo(c.x+dx*L-nx*L*.02,c.y+dy*L-ny*L*.02);ctx.lineTo(c.x-nx*3,c.y-ny*3);ctx.closePath();ctx.fill();
+    g=ctx.createLinearGradient(c.x,c.y,c.x+dx*L*1.3,c.y+dy*L*1.3);g.addColorStop(0,`rgba(${c.hue},.65)`);g.addColorStop(1,`rgba(${c.hue},0)`);
+    ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(c.x+nx*2,c.y+ny*2);ctx.lineTo(c.x+dx*L*1.3+nx*4,c.y+dy*L*1.3+ny*4);ctx.lineTo(c.x+dx*L*1.3-nx*4,c.y+dy*L*1.3-ny*4);ctx.lineTo(c.x-nx*2,c.y-ny*2);ctx.closePath();ctx.fill();
+    glow(c.x,c.y,22,c.hue,.5);glow(c.x,c.y,6,'255,255,255',1);}
+}
+
+/* ================= NÁKLADNÍ LOĎ KARMÍN-9 ================= */
+const FR={x:0,y:0,dir:-1,active:false,next:8};
+function shadeC(c,f){return`rgb(${Math.min(255,c[0]*f)|0},${Math.min(255,c[1]*f)|0},${Math.min(255,c[2]*f)|0})`;}
+function box3(X,Y,w,h,col,d){const x=ctx;
+  x.fillStyle=shadeC(col,1.3);x.beginPath();x.moveTo(X,Y);x.lineTo(X+d,Y-d*.7);x.lineTo(X+w+d,Y-d*.7);x.lineTo(X+w,Y);x.closePath();x.fill();
+  x.fillStyle=shadeC(col,.6);x.beginPath();x.moveTo(X+w,Y);x.lineTo(X+w+d,Y-d*.7);x.lineTo(X+w+d,Y+h-d*.7);x.lineTo(X+w,Y+h);x.closePath();x.fill();
+  const g=x.createLinearGradient(0,Y,0,Y+h);g.addColorStop(0,shadeC(col,1.05));g.addColorStop(1,shadeC(col,.5));x.fillStyle=g;x.fillRect(X,Y,w,h);}
+function drawFreighter(dt,t){
+  const m=Math.min(W,H),s=m*.36/300;
+  if(!FR.active){FR.next-=dt;if(FR.next<=0){FR.active=true;FR.dir=Math.random()<.5?-1:1;FR.x=FR.dir<0?W+170*s+60:-170*s-60;FR.y=H*rand(.2,.27);
+    if(Math.random()<.7)log('Radar: těžká nákladní loď KARMÍN-9 na souběžném kurzu','');}return;}
+  FR.x+=FR.dir*dt*(S.warp?420:14);
+  if(FR.x<-240*s-100||FR.x>W+240*s+100){FR.active=false;FR.next=rand(60,120);return;}
+  const x=ctx;x.save();x.translate(FR.x,FR.y+Math.sin(t*.25)*3);x.scale(FR.dir*s,s);
+  for(const ey of[-14,0,14]){const fl=.8+.2*Math.sin(t*20+ey);const g=x.createLinearGradient(-150,0,-235,0);g.addColorStop(0,`rgba(150,205,255,${.8*fl})`);g.addColorStop(1,'rgba(80,140,255,0)');
+    x.fillStyle=g;x.beginPath();x.moveTo(-150,ey-6);x.lineTo(-150-80*fl,ey);x.lineTo(-150,ey+6);x.closePath();x.fill();}
+  const red=[150,38,30],dark=[68,62,66],grey=[112,116,126];
+  box3(-148,-26,40,52,dark,8);
+  for(const ey of[-14,0,14]){x.fillStyle='#16181e';x.beginPath();x.ellipse(-149,ey,4,7,0,0,TAU);x.fill();glow(-151,ey,10,'150,205,255',.8);}
+  x.strokeStyle='rgba(0,0,0,.4)';x.lineWidth=1;for(let i=-140;i<-110;i+=8){x.beginPath();x.moveTo(i,-26);x.lineTo(i,26);x.stroke();}
+  for(const px of[-60,30]){x.fillStyle=shadeC(dark,.9);x.beginPath();x.roundRect(px,17,54,11,5);x.fill();x.fillStyle='rgba(255,180,60,.7)';x.fillRect(px+4,21,46,2);}
+  box3(-110,-16,215,34,red,8);
+  x.fillStyle=shadeC(red,.85);x.beginPath();x.moveTo(105,-16);x.lineTo(146,-6);x.lineTo(146,12);x.lineTo(105,18);x.closePath();x.fill();
+  x.fillStyle=shadeC(red,1.3);x.beginPath();x.moveTo(105,-16);x.lineTo(113,-21.6);x.lineTo(152,-10.2);x.lineTo(146,-6);x.closePath();x.fill();
+  x.fillStyle=shadeC(red,.55);x.beginPath();x.moveTo(146,-6);x.lineTo(152,-10.2);x.lineTo(152,7.8);x.lineTo(146,12);x.closePath();x.fill();
+  x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=.8;for(let i=-92;i<105;i+=18){x.beginPath();x.moveTo(i,-16);x.lineTo(i,18);x.stroke();}
+  x.beginPath();x.moveTo(-110,3);x.lineTo(105,3);x.stroke();
+  x.fillStyle='#d9a12a';x.fillRect(84,-16,8,34);x.fillStyle='#1a1a1a';for(let i=0;i<5;i++)x.fillRect(84,-14+i*7,8,3);
+  for(let i=-104;i<80;i+=5){if(((i+200)*7)%3===0)continue;x.fillStyle=`rgba(255,220,150,${Math.sin(i*1.7+t*.4)>-.4?.85:.12})`;x.fillRect(i,-9,2,1.6);x.fillRect(i,8,2,1.4);}
+  const cols=[[170,60,40],[90,95,105],[165,112,40],[130,40,40],[70,92,112],[150,70,45]];
+  for(let i=0;i<6;i++)box3(-68+i*27,-30-(i%2)*6,23,14+(i%2)*6,cols[i],6);
+  box3(-104,-54,30,38,grey,7);
+  x.fillStyle='rgba(140,220,255,.9)';x.fillRect(-100,-48,22,3);x.fillRect(-100,-41,22,2);
+  x.strokeStyle='#9aa4b4';x.lineWidth=1;x.beginPath();x.moveTo(-90,-58);x.lineTo(-90,-74);x.moveTo(-95,-68);x.lineTo(-85,-68);x.stroke();
+  if(Math.sin(t*3)>.6)glow(-90,-74,7,'255,70,70',1);
+  if(Math.sin(t*3+2)>.6)glow(152,0,7,FR.dir>0?'80,255,120':'255,70,70',1);
+  x.save();x.translate(-40,14);x.scale(FR.dir,1);x.fillStyle='rgba(235,225,210,.85)';x.font='bold 9px "Share Tech Mono",monospace';x.textAlign=FR.dir>0?'left':'right';x.fillText('KARMÍN-9',0,0);x.restore();
+  x.restore();
+}
+
+/* ================= SLAVIA TV ================= */
+const SLAVIA_HOME='Eden Aréna, Praha';
+const CITY={'Mladá Boleslav':'Mladá Boleslav','Jablonec':'Jablonec nad Nisou','Artis Brno':'Brno','Olomouc':'Olomouc','Baník Ostrava':'Ostrava','Pardubice':'Pardubice','Liberec':'Liberec','Bohemians Praha 1905':'Praha – Ďolíček','Sparta Praha':'Praha – Letná','Zbrojovka Brno':'Brno','Teplice':'Teplice','Viktoria Plzeň':'Plzeň','Zlín':'Zlín','Hradec Králové':'Hradec Králové','Slovácko':'Uherské Hradiště'};
+const FIX=[
+  ['2026-10-24T18:00','Mladá Boleslav',1,12],['2026-10-31T15:00','Jablonec',0,13],['2026-11-08T15:00','Artis Brno',1,14],
+  ['2026-11-21T15:00','Olomouc',0,15],['2026-11-29T13:00','Baník Ostrava',1,16],['2026-12-04T18:00','Pardubice',0,17],
+  ['2026-12-13T18:00','Liberec',1,18],['2027-01-30T15:00','Bohemians Praha 1905',0,19],['2027-02-06T15:00','Sparta Praha',1,20],
+  ['2027-02-13T15:00','Zbrojovka Brno',0,21],['2027-02-20T15:00','Teplice',1,22],['2027-02-27T15:00','Viktoria Plzeň',0,23],
+  ['2027-03-06T15:00','Zlín',1,24],['2027-03-13T15:00','Hradec Králové',0,25],['2027-03-20T15:00','Mladá Boleslav',0,26],
+  ['2027-04-03T15:00','Jablonec',1,27],['2027-04-10T15:00','Artis Brno',0,28],['2027-04-17T15:00','Olomouc',1,29],['2027-04-24T15:00','Slovácko',0,30]
+].map(([d,opp,home,kolo])=>({t:new Date(d),home:home?'Slavia Praha':opp,away:home?opp:'Slavia Praha',comp:`Chance Liga · ${kolo}. kolo`,venue:home?SLAVIA_HOME:(CITY[opp]||'')}));
+let apiFix=[],lastRes=null;
+async function loadSlavia(){
+  try{
+    let id=null;try{id=localStorage.getItem('slaviaId');}catch(e){}
+    if(!id){const r=await fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=Slavia%20Prague');const j=await r.json();
+      const tm=(j.teams||[]).find(t=>/soccer/i.test(t.strSport||'')&&/czech/i.test(t.strCountry||''));if(!tm)return;id=tm.idTeam;try{localStorage.setItem('slaviaId',id);}catch(e){}}
+    const pt=s=>{if(!s)return null;const d=new Date(/Z$|[+-]\d\d:?\d\d$/.test(s)?s:s+'Z');return isNaN(d)?null:d;};
+    const ev=e=>({t:pt(e.strTimestamp)||pt(e.dateEvent?e.dateEvent+'T'+(e.strTime||'12:00:00'):null),home:e.strHomeTeam||'',away:e.strAwayTeam||'',
+      comp:(e.strLeague||'')+(e.intRound?` · ${e.intRound}. kolo`:''),venue:e.strVenue||'',hs:e.intHomeScore,as:e.intAwayScore});
+    const r2=await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnext.php?id=${id}`);const j2=await r2.json();
+    apiFix=(j2.events||[]).map(ev).filter(e=>e.t&&/slavia/i.test(e.home+e.away));
+    const r3=await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${id}`);const j3=await r3.json();
+    const l=(j3.results||[]).map(ev).filter(e=>e.t&&e.hs!=null&&e.hs!==''&&/slavia/i.test(e.home+e.away)).sort((a,b)=>b.t-a.t)[0];
+    if(l&&Date.now()-l.t<21*864e5)lastRes=l;
+  }catch(e){}
+  renderTV();
+}
+function allFix(){
+  const list=FIX.map(f=>({...f}));
+  for(const a of apiFix){const i=list.findIndex(f=>Math.abs(f.t-a.t)<30*36e5);if(i>=0)list[i].t=a.t;else if(a.t>Date.now()-3*36e5)list.push(a);}
+  return list.sort((a,b)=>a.t-b.t);
+}
+const $tv=id=>document.getElementById(id);
+const nm=n=>(n||'').replace(/^SK /,'').replace('Slavia Prague','Slavia Praha');
+function setTeam(el,name,side){const sl=/slavia/i.test(name);el.className='team'+(side?' r':'')+(sl?' sl':'');el.innerHTML=`<span>${nm(name).toUpperCase()}</span><small>${side?'HOSTÉ':'DOMÁCÍ'}</small>`;}
+function renderTV(){
+  const now=Date.now(),list=allFix(),cur=list.find(f=>f.t.getTime()+115*6e4>now);
+  if(!cur){$tv('tvComp').textContent='SEZÓNA SKONČILA';$tv('tvCount').textContent='';return;}
+  const live=cur.t.getTime()<=now;
+  $tv('tvLive').textContent=live?'● ŽIVĚ':'PŘÍŠTÍ ZÁPAS';$tv('tvLive').classList.toggle('live',live);
+  $tv('tvComp').textContent=cur.comp.toUpperCase();
+  setTeam($tv('tvHome'),cur.home,0);setTeam($tv('tvAway'),cur.away,1);
+  $tv('tvWhen').textContent=cur.t.toLocaleDateString('cs-CZ',{weekday:'short',day:'numeric',month:'numeric'})+' · '+cur.t.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'});
+  $tv('tvWhere').textContent='⌖ '+(cur.venue||'stadion bude upřesněn');
+  let cd;
+  if(live)cd='Zápas právě probíhá';
+  else{const s=Math.floor((cur.t-now)/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),mi=Math.floor(s%3600/60),se=s%60;
+    cd=d>0?`za ${d} d ${h} h ${mi} min`:`za ${h} h ${String(mi).padStart(2,'0')} min ${String(se).padStart(2,'0')} s`;}
+  $tv('tvCount').textContent=cd;
+  $tv('tvNote').textContent=(!live&&cur.t-now>10*864e5)?'čas výkopu se může změnit':'';
+  const nx=list.filter(f=>f.t>cur.t).slice(0,2).map(f=>{const sl=/slavia/i.test(f.home);return`${f.t.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'})} ${sl?nm(f.away):nm(f.home)} (${sl?'doma':'venku'})`;});
+  $tv('tvNext').textContent=nx.length?'DALŠÍ: '+nx.join('  ·  '):'';
+  const lr=lastRes?`POSLEDNÍ ZÁPAS: ${nm(lastRes.home)} ${lastRes.hs}:${lastRes.as} ${nm(lastRes.away)}   ✦   `:'';
+  const tk=`${lr}SK SLAVIA PRAHA   ✦   CHANCE LIGA 2026/27   ✦   ${nm(cur.home)} – ${nm(cur.away)}   ✦   ${cur.venue}   ✦   VYSÍLÁ KESTREL SPORT   ✦   `;
+  if($tv('tvTicker').textContent!==tk)$tv('tvTicker').textContent=tk;
+}
+
 /* ================= START ================= */
+let UI={nolog:false};try{UI=Object.assign(UI,JSON.parse(localStorage.getItem('kestrel7ui')||'{}'));}catch(e){}
+const logBtn=document.getElementById('logbtn');
+function applyLog(){document.body.classList.toggle('nolog',!!UI.nolog);logBtn.style.opacity=UI.nolog?.55:1;logBtn.textContent=UI.nolog?'☰ ZÁZNAM: VYP':'☰ ZÁZNAM';layout();}
+logBtn.onclick=()=>{UI.nolog=!UI.nolog;try{localStorage.setItem('kestrel7ui',JSON.stringify(UI));}catch(e){}applyLog();tone(1800,.05,'square',.03);};
+document.body.classList.toggle('nolog',!!UI.nolog);
 addEventListener('resize',resize);
-resize();sizeCams();refreshUI();requestAnimationFrame(frame);
+resize();sizeCams();applyLog();renderTV();setInterval(renderTV,1000);loadSlavia();setInterval(loadSlavia,6*3600*1000);refreshUI();requestAnimationFrame(frame);
 [['Systémy můstku inicializovány','ok'],['Spojení s orbitální sítí navázáno',''],['Tip: klávesy 1–5 = spínače, H nebo dvojklik = skrýt panely, klik na kameru = zvětšit','']].forEach((m,i)=>setTimeout(()=>log(m[0],m[1]),400+i*900));
 })();
 </script>
