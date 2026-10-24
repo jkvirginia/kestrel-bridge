@@ -30,6 +30,29 @@ body.hidehud .hud *{pointer-events:none!important}
 #log{flex:1;overflow:hidden;min-height:0}
 body.idle,body.idle *{cursor:none!important}
 .tools button.act{color:#7dffb4;text-shadow:0 0 8px #7dffb4}
+/* ---------- hvězdná mapa ---------- */
+.smap{left:300px;top:150px;width:clamp(270px,15vw,360px);pointer-events:auto;padding:14px 14px 12px}
+.smap canvas{display:block;width:100%;aspect-ratio:13/10}
+.sinfo{margin-top:8px;height:46px;font-size:11px;line-height:1.35;overflow:hidden}
+.sinfo .l1{display:flex;justify-content:space-between;gap:8px;white-space:nowrap}
+.sinfo b{font-family:Orbitron;font-size:11px;letter-spacing:.1em;font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.sinfo i{font-style:normal;opacity:.7}
+.sinfo .tg{color:#ffd166;opacity:1}
+.sinfo .d{font-size:10px;opacity:.75;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* ---------- energetika (palivo + baterie) ---------- */
+.energy{position:absolute;right:calc(clamp(120px,9vw,190px) + 95px);bottom:215px;width:250px;padding:8px 9px 10px;border-radius:14px;pointer-events:auto;
+  background:
+    radial-gradient(circle at 9px 9px,#a3b0c4 0 1.4px,#161c28 2px,transparent 3px),
+    radial-gradient(circle at calc(100% - 9px) 9px,#a3b0c4 0 1.4px,#161c28 2px,transparent 3px),
+    radial-gradient(circle at 9px calc(100% - 9px),#a3b0c4 0 1.4px,#161c28 2px,transparent 3px),
+    radial-gradient(circle at calc(100% - 9px) calc(100% - 9px),#a3b0c4 0 1.4px,#161c28 2px,transparent 3px),
+    linear-gradient(165deg,#36435c 0%,#1a2234 38%,#0c111c 100%);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -4px 8px rgba(0,0,0,.55),0 7px 0 #05080f,0 18px 26px rgba(0,0,0,.75)}
+.energy .ehead{white-space:nowrap;display:flex;justify-content:space-between;font-size:9px;letter-spacing:.2em;color:#8b98ad;margin:0 10px 6px;text-shadow:0 -1px 0 #000}
+.energy .ehead b{font-family:Orbitron;font-weight:700;color:#c3cede}
+.escreen{border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#070c16,#03060c);box-shadow:0 0 0 2px #04060a,0 0 0 3px rgba(255,255,255,.08),inset 0 0 18px rgba(0,0,0,.9)}
+.escreen canvas{display:block;width:100%;aspect-ratio:232/200}
 /* ---------- navigační panel ---------- */
 .nav{position:relative;display:flex;gap:14px;align-items:stretch;padding:12px 14px 12px 12px;border:1px solid var(--dim);
   background:linear-gradient(180deg,rgba(10,30,55,.5),rgba(4,10,24,.3));backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
@@ -166,7 +189,7 @@ body.nolog .right{display:none}
 .screen{position:relative;border-radius:6px;overflow:hidden;background:#000;box-shadow:0 0 0 2px #04060a,0 0 0 3px rgba(255,255,255,.08)}
 .screen canvas{display:block;width:100%;aspect-ratio:16/10}
 .screen::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:6px;background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,0) 35%);box-shadow:inset 0 0 14px rgba(0,0,0,.9)}
-@media (max-width:900px){.left,.right,.leftstack{display:none}.deck{left:50%!important}.deck{transform:translateX(-50%) scale(.62);transform-origin:50% 100%;bottom:10px}}
+@media (max-width:900px){.left,.right,.leftstack,.smap,.energy{display:none!important}.deck{left:50%!important}.deck{transform:translateX(-50%) scale(.62);transform-origin:50% 100%;bottom:10px}}
 </style>
 </head>
 <body>
@@ -205,6 +228,17 @@ body.nolog .right{display:none}
     <div class="row"><div class="lab"><span>UMĚLÁ GRAVITACE</span><span id="v-grv">0 g</span></div><div class="bar"><i id="b-grv"></i></div></div>
     <div class="row"><div class="lab"><span>KYSLÍK</span><span id="v-o2">0 %</span></div><div class="bar"><i id="b-o2"></i></div></div>
     <div class="row"><div class="lab"><span>INTEGRITA TRUPU</span><span id="v-hul">100 %</span></div><div class="bar"><i id="b-hul"></i></div></div>
+  </div>
+
+  <div class="panel smap" id="smap">
+    <h3>HVĚZDNÁ MAPA · SEKTOR 7G</h3>
+    <canvas id="starmap"></canvas>
+    <div class="sinfo" id="sinfo"></div>
+  </div>
+
+  <div class="energy" id="energy">
+    <div class="ehead"><span><b>ENERGETIKA</b></span><span id="eState">●</span></div>
+    <div class="escreen"><canvas id="ecv"></canvas></div>
   </div>
 
   <div class="panel right">
@@ -293,14 +327,16 @@ function log(t,cls){
 function trimLog(){while(logEl.children.length>1&&logEl.scrollHeight>logEl.clientHeight+1)logEl.removeChild(logEl.firstChild);}
 function toggle(k,src){
   if(src!=='auto'){if(UI.auto)autoT=Math.max(autoT,30);if(k==='warp')warpEnd=0;} // ruční zásah = autopilot chvíli počká
-  if(k==='warp'&&!S.warp&&!S.reactor){
-    log('Hyperpohon: NEDOSTATEK ENERGIE – nejdřív zapni reaktor','w');
-    swEl.warp.classList.remove('deny');void swEl.warp.offsetWidth;swEl.warp.classList.add('deny');
-    tone(160,.25,'square',.05,90);return;
+  const deny=t=>{log(t,'w');swEl[k].classList.remove('deny');void swEl[k].offsetWidth;swEl[k].classList.add('deny');tone(160,.25,'square',.05,90);};
+  if(!S[k]){ // zapínání – kontrola zásob
+    if(k==='warp'&&!S.reactor)return deny('Hyperpohon: NEDOSTATEK ENERGIE – nejdřív zapni reaktor');
+    if(k==='warp'&&RES.fuel<5)return deny('Hyperpohon: málo paliva pro skok (min. 5 %)');
+    if(k==='reactor'&&RES.fuel<1)return deny('Reaktor: nádrž je prázdná – čekej na tanker');
+    if((k==='shield'||k==='scan')&&!S.reactor&&RES.bat<2)return deny('Baterie vybitá – zapni reaktor');
   }
   S[k]=!S[k];
   if(k==='reactor'&&!S.reactor&&S.warp){S.warp=false;log('Hyperpohon nouzově vypnut – ztráta energie','w');}
-  const m=MSG[k][S[k]?0:1];log(m[0],m[1]);
+  const m=(k==='warp'&&S.warp)?[`Hyperpohon: skok zahájen – cíl ${STARS[UI.tgt].n} (${starDist(STARS[UI.tgt]).toFixed(1).replace('.',',')} ly)`,'ok']:MSG[k][S[k]?0:1];log(m[0],m[1]);
   if(k==='warp'&&S.warp)flash=1;
   if(k==='shield'&&S.shield)shieldRipple=0;
   refreshUI();save();sfx(k);setHum();
@@ -312,7 +348,7 @@ addEventListener('keydown',e=>{
   if(e.key==='a'||e.key==='A')setAuto(!UI.auto);
   if(e.key==='m'||e.key==='M')sndBtn.click();
 });
-addEventListener('dblclick',e=>{if(e.target.closest('.sw,button'))return;document.body.classList.toggle('hidehud');});
+addEventListener('dblclick',e=>{if(e.target.closest('.sw,button,.smap,.energy,.cam'))return;document.body.classList.toggle('hidehud');});
 document.getElementById('hide').onclick=()=>document.body.classList.add('hidehud');
 function fullscreen(){const d=document.documentElement;if(!document.fullscreenElement)(d.requestFullscreen||d.webkitRequestFullscreen||function(){}).call(d);else document.exitFullscreen();}
 document.getElementById('fs').onclick=fullscreen;
@@ -380,12 +416,26 @@ function resize(){
   layout();
   if(typeof sizeCams==='function')sizeCams();
   if(typeof sizeNav==='function')sizeNav();
+  if(typeof sizeEnergy==='function')sizeEnergy();
   if(!stars.length)for(let i=0;i<950;i++)stars.push(newStar(true));
 }
 function layout(){const rp=document.querySelector('.right').getBoundingClientRect(),nl=document.body.classList.contains('nolog');
   LAY={dnaTop:(nl||!rp.height)?Math.max(175,H*.18):Math.max(rp.bottom+48,H*.35),dnaBase:H-95};
   const ne=document.getElementById('nav');if(ne){ne.style.display='';const lb=document.querySelector('.left').getBoundingClientRect().bottom;
-    if(ne.getBoundingClientRect().top<lb+14)ne.style.display='none';}}
+    if(ne.getBoundingClientRect().top<lb+14)ne.style.display='none';}
+  // panely se zobrazí jen tam, kde nepřekáží stanici ani jiným panelům
+  const hit=(a,b,p)=>a.left<b.right+p&&a.right>b.left-p&&a.top<b.bottom+p&&a.bottom>b.top-p;
+  const ring={left:ST.cx-ST.R*1.1,right:ST.cx+ST.R*1.1,top:ST.cy-ST.R*.75,bottom:ST.cy+ST.R*.9};
+  const vis=el=>el&&el.style.display!=='none'&&getComputedStyle(el).display!=='none';
+  // zkusí plnou velikost, pak zmenšení; když se nevejde ani tak, panel schová
+  const fit=(el,origin,scales,bad)=>{if(!el)return;el.style.display='';el.style.transformOrigin=origin;
+    for(const sc of scales){el.style.transform=sc===1?'':`scale(${sc})`;if(!bad(el.getBoundingClientRect()))return;}
+    el.style.transform='';el.style.display='none';};
+  const sm=document.getElementById('smap');
+  fit(sm,'0 0',[1,.85],r=>hit(r,ring,6)||(vis(ne)&&hit(r,ne.getBoundingClientRect(),8))||r.bottom>H-20);
+  if(typeof sizeSmap==='function'&&vis(sm))sizeSmap();
+  const rp2=document.querySelector('.right'),dk=document.getElementById('deck').getBoundingClientRect();
+  fit(document.getElementById('energy'),'100% 100%',[1,.85,.72],r=>hit(r,ring,4)||(!nl&&vis(rp2)&&hit(r,rp2.getBoundingClientRect(),8))||hit(r,dk,6)||r.top<120);}
 function mkCanvas(){const c=document.createElement('canvas');c.width=W*DPR;c.height=H*DPR;const x=c.getContext('2d');x.setTransform(DPR,0,0,DPR,0,0);return[c,x];}
 
 function buildNebula(){
@@ -725,6 +775,8 @@ function drawShips(dt,t){
     const s=ships[i];s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;
     if(s.life<=0||S.warp){
       if(S.warp){s.dock.st='free';s.dock.ship='';}
+      else if(Math.random()<.45){const add=rand(4,9);RES.fuel=Math.min(100,RES.fuel+add);RES.refuel=1;RES.refAdd=add;
+        log(`Tanker ${s.name} v doku ${s.dock.n} – doplněno palivo +${add.toFixed(0)} %`,'ok');s.dock.st='docked';s.dock.t=rand(35,90);}
       else{log(`Raketoplán ${s.name} přistál v doku ${s.dock.n}`,'');s.dock.st='docked';s.dock.t=rand(35,90);crew=Math.min(156,crew+(Math.random()*4|0));}
       ships.splice(i,1);continue;}
     const ang=Math.atan2(s.vy,s.vx),fade=Math.min(1,s.life/1.2,(s.max-s.life)/1);
@@ -799,6 +851,172 @@ function drawMeteors(dt,t){
     glow(cx+im.x,cy+im.y,ST.hs*3*(1.5-im.life),'210,190,255',im.life*.7);}
 }
 
+/* ================= ZÁSOBY: PALIVO A BATERIE ================= */
+const RES={fuel:78,bat:64,fRate:0,bRate:0,refuel:0,refAdd:0,lowF:false,lowB:false,bubbles:[],chg:false};
+try{const r=JSON.parse(localStorage.getItem('kestrel7res')||'{}');if(r.fuel>=0)RES.fuel=Math.min(100,r.fuel);if(r.bat>=0)RES.bat=Math.min(100,r.bat);}catch(e){}
+setInterval(()=>{try{localStorage.setItem('kestrel7res',JSON.stringify({fuel:RES.fuel,bat:RES.bat}));}catch(e){}},5000);
+function updRes(dt){
+  // palivo (deuterium): spotřeba reaktoru a hyperpohonu, sběr vodíku ze slunečního větru
+  const fr=.006-(S.reactor?.022:0)-(S.warp?.33:0);
+  // baterie: solární panely + reaktor vs. spotřeba stanice
+  let br=(S.warp?0:.05)+(S.reactor?.26:0)-.058;
+  if(!S.reactor){if(S.shield)br-=.12;if(S.scan)br-=.045;}else if(S.shield)br-=.03;
+  if(S.alert)br-=.02;if(S.warp)br-=.08;
+  RES.fuel=Math.max(0,Math.min(100,RES.fuel+fr*dt));RES.bat=Math.max(0,Math.min(100,RES.bat+br*dt));
+  RES.fRate+=(fr*60-RES.fRate)*Math.min(1,dt*2);RES.bRate+=(br*60-RES.bRate)*Math.min(1,dt*2);
+  RES.chg=br>0&&RES.bat<100;RES.refuel=Math.max(0,RES.refuel-dt*.4);
+  if(RES.fuel<=0&&S.reactor){log('Reaktor odstaven – došlo palivo!','w');toggle('reactor','auto');}
+  if(RES.bat<=0&&!S.reactor&&(S.shield||S.scan)){log('Baterie vybitá – štíty a skener odpojeny','w');if(S.shield)toggle('shield','auto');if(S.scan)toggle('scan','auto');}
+  if(RES.fuel<15&&!RES.lowF){RES.lowF=true;log(`Palivo dochází – zbývá ${RES.fuel.toFixed(0)} %`,'w');}if(RES.fuel>25)RES.lowF=false;
+  if(RES.bat<15&&!RES.lowB){RES.lowB=true;log(`Baterie slabá – ${RES.bat.toFixed(0)} %`,'w');}if(RES.bat>25)RES.lowB=false;
+}
+const enEl=document.getElementById('energy'),ecv=document.getElementById('ecv'),ex=ecv.getContext('2d'),EW=232,EH=200;
+function sizeEnergy(){ecv.width=EW*DPR;ecv.height=EH*DPR;ex.setTransform(DPR,0,0,DPR,0,0);}
+const fmtR=r=>Math.abs(r)<.05?'■ stabilní':(r>0?'▲ +':'▼ −')+Math.abs(r).toFixed(1).replace('.',',')+' %/min';
+function drawEnergy(dt,t){
+  if(enEl.style.display==='none'||document.body.classList.contains('hidehud'))return;
+  const x=ex;x.clearRect(0,0,EW,EH);
+  x.strokeStyle='rgba(90,140,200,.07)';x.lineWidth=1;for(let i=0;i<EW;i+=12){x.beginPath();x.moveTo(i,0);x.lineTo(i,EH);x.stroke();}for(let j=0;j<EH;j+=12){x.beginPath();x.moveTo(0,j);x.lineTo(EW,j);x.stroke();}
+  /* ---- nádrž s palivem ---- */
+  const tx=26,ty=16,tw=60,th=118,f=RES.fuel/100,warnF=RES.fuel<15&&Math.sin(t*6)>0;
+  // stojan a pásy
+  x.fillStyle='#1b2333';x.fillRect(tx-6,ty+th-2,tw+12,8);
+  x.save();x.beginPath();x.roundRect(tx,ty,tw,th,tw/2.6);x.clip();
+  x.fillStyle='#04070d';x.fillRect(tx,ty,tw,th);
+  const ly=ty+th-th*f;
+  if(f>0){
+    const g=x.createLinearGradient(tx,0,tx+tw,0);g.addColorStop(0,'#7a2c00');g.addColorStop(.35,'#ff9a2e');g.addColorStop(.6,'#ffc463');g.addColorStop(1,'#8a3400');
+    const sl=RES.refuel*5;
+    x.fillStyle=g;x.beginPath();x.moveTo(tx,ty+th);
+    for(let i=0;i<=tw;i+=2){x.lineTo(tx+i,ly+Math.sin(t*3+i*.18)*(1.6+sl)+Math.sin(t*1.7+i*.07)*1.2);}
+    x.lineTo(tx+tw,ty+th);x.closePath();x.fill();
+    x.strokeStyle='rgba(255,240,200,.85)';x.lineWidth=1.4;x.beginPath();
+    for(let i=0;i<=tw;i+=2){const yy=ly+Math.sin(t*3+i*.18)*(1.6+sl)+Math.sin(t*1.7+i*.07)*1.2;i?x.lineTo(tx+i,yy):x.moveTo(tx+i,yy);}x.stroke();
+    // bubliny
+    if(Math.random()<dt*(S.reactor?9:3))RES.bubbles.push({x:tx+6+Math.random()*(tw-12),y:ty+th-2,r:rand(1,2.6),v:rand(12,30)});
+    for(let i=RES.bubbles.length-1;i>=0;i--){const b=RES.bubbles[i];b.y-=b.v*dt;b.x+=Math.sin(t*4+b.y*.1)*.2;if(b.y<ly+3){RES.bubbles.splice(i,1);continue;}
+      x.strokeStyle='rgba(255,235,190,.6)';x.lineWidth=.8;x.beginPath();x.arc(b.x,b.y,b.r,0,TAU);x.stroke();}
+  }
+  // sklo – odlesk
+  let g=x.createLinearGradient(tx,0,tx+tw,0);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.18,'rgba(255,255,255,.22)');g.addColorStop(.3,'rgba(255,255,255,0)');g.addColorStop(.85,'rgba(255,255,255,.06)');g.addColorStop(1,'rgba(0,0,0,.35)');
+  x.fillStyle=g;x.fillRect(tx,ty,tw,th);
+  x.restore();
+  x.strokeStyle=warnF?'#ff4d5e':'#7d8ba3';x.lineWidth=2.2;x.beginPath();x.roundRect(tx,ty,tw,th,tw/2.6);x.stroke();
+  x.fillStyle='#5b6880';for(const yy of[ty+th*.18,ty+th*.82]){x.fillRect(tx-3,yy-3,tw+6,6);x.fillStyle='#3a4558';}
+  // stupnice
+  x.font='8px "Share Tech Mono",monospace';x.textAlign='left';
+  for(let i=0;i<=4;i++){const yy=ty+th-th*i/4;x.strokeStyle='rgba(180,200,230,.5)';x.lineWidth=1;x.beginPath();x.moveTo(tx+tw+4,yy);x.lineTo(tx+tw+(i%2?8:11),yy);x.stroke();
+    if(i%2===0&&i<4){x.fillStyle='rgba(180,200,230,.55)';x.fillText(i*25,tx+tw+13,yy+3);}}
+  x.fillStyle='#0b0f17';x.font='bold 8px "Share Tech Mono",monospace';x.textAlign='center';x.fillText('D₂',tx+tw/2,ty+th*.82+3);
+  if(RES.refuel>0){x.fillStyle=`rgba(125,255,180,${RES.refuel})`;x.font='bold 12px "Share Tech Mono",monospace';x.fillText('+'+RES.refAdd.toFixed(0)+' %',tx+tw/2,ly-6-(1-RES.refuel)*24);}
+  /* ---- baterie ---- */
+  const bx=146,by=24,bw=58,bh=110,b=RES.bat/100,warnB=RES.bat<15&&Math.sin(t*6)>0;
+  const bc=RES.bat<15?'255,77,94':RES.bat<35?'255,209,102':'125,255,160';
+  x.fillStyle='#5b6880';x.beginPath();x.roundRect(bx+bw/2-12,by-8,24,10,3);x.fill();
+  x.fillStyle='#04070d';x.beginPath();x.roundRect(bx,by,bw,bh,7);x.fill();
+  x.strokeStyle=warnB?'#ff4d5e':'#7d8ba3';x.lineWidth=2.2;x.stroke();
+  const N=10,gap=3,sh=(bh-8-gap*(N-1))/N,filled=b*N;
+  for(let i=0;i<N;i++){const yy=by+bh-4-(i+1)*sh-i*gap,lvl=Math.max(0,Math.min(1,filled-i));
+    x.fillStyle='rgba(255,255,255,.04)';x.fillRect(bx+5,yy,bw-10,sh);
+    if(lvl>0){let a=.35+.65*lvl;if(RES.chg&&i===Math.floor(filled))a*=.5+.5*Math.sin(t*6);
+      x.fillStyle=`rgba(${bc},${a})`;x.shadowColor=`rgba(${bc},.8)`;x.shadowBlur=6;x.fillRect(bx+5,yy,(bw-10),sh);x.shadowBlur=0;}}
+  if(RES.chg){const sy=by+bh-((t*40)%bh);g=x.createLinearGradient(0,sy-14,0,sy+14);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,'rgba(255,255,255,.22)');g.addColorStop(1,'rgba(255,255,255,0)');
+    x.save();x.beginPath();x.roundRect(bx,by,bw,bh,7);x.clip();x.fillStyle=g;x.fillRect(bx,sy-14,bw,28);x.restore();
+    const p=.6+.4*Math.sin(t*5),cx2=bx+bw/2,cy2=by+bh/2;x.save();x.translate(cx2,cy2);x.fillStyle=`rgba(255,240,120,${p})`;x.shadowColor='rgba(255,230,90,.9)';x.shadowBlur=12;
+    x.beginPath();x.moveTo(3,-22);x.lineTo(-11,3);x.lineTo(-1,3);x.lineTo(-4,22);x.lineTo(11,-4);x.lineTo(1,-4);x.closePath();x.fill();x.restore();}
+  /* ---- popisky ---- */
+  x.textAlign='center';
+  const lab=(cxx,name,val,rate,col)=>{x.font='9px "Share Tech Mono",monospace';x.fillStyle='rgba(160,180,210,.75)';x.fillText(name,cxx,154);
+    x.font='bold 17px "Share Tech Mono",monospace';x.fillStyle=col;x.fillText(val.toFixed(1).replace('.',',')+' %',cxx,174);
+    x.font='10px "Share Tech Mono",monospace';x.fillStyle=rate>.05?'#7dffb4':rate<-.05?'#ff8a7a':'rgba(160,180,210,.7)';x.fillText(fmtR(rate),cxx,190);};
+  lab(tx+tw/2+4,'PALIVO',RES.fuel,RES.fRate,RES.fuel<15?'#ff4d5e':'#ffc463');
+  lab(bx+bw/2,'BATERIE',RES.bat,RES.bRate,`rgb(${bc})`);
+  x.textAlign='left';
+  const st=$('eState');const ok=RES.fuel>=15&&RES.bat>=15;st.textContent=RES.chg?'⚡ NABÍJENÍ':ok?'● V NORMĚ':'⚠ NÍZKÉ ZÁSOBY';st.style.color=RES.chg?'#ffe066':ok?'#7dffb4':'#ff4d5e';
+}
+
+/* ================= HVĚZDNÁ MAPA ================= */
+// souřadnice v ly (stylizovaná 2D projekce, Slunce = 0,0)
+const STARS=[
+  {n:'Proxima Centauri',s:'Proxima · K-7',lo:'b',x:-3,y:-3,c:'M5.5',col:'255,130,90',r:3,d:'Domovská soustava – Kestrel-7 obíhá planetu Proxima b'},
+  {n:'Slunce',s:'Slunce',x:0,y:0,c:'G2V',col:'255,235,150',r:3.6,d:'Domovská soustava lidstva · Země, odkud létají zásobovací konvoje'},
+  {n:'Alfa Centauri A/B',s:'α Cen',lo:'l',x:-3.55,y:-2.5,c:'G2V+K1V',col:'255,225,140',r:3.2,d:'Dvojhvězda podobná Slunci, jen kousek od Proximy',pair:1},
+  {n:'Barnardova hvězda',s:'Barnard',x:4,y:-4.4,c:'M4V',col:'255,140,100',r:2.6,d:'Červený trpaslík s nejrychlejším vlastním pohybem na obloze'},
+  {n:'Wolf 359',s:'Wolf 359',x:5.5,y:5.6,c:'M6V',col:'255,120,90',r:2.2,d:'Slabý vzplanující červený trpaslík ve Lvu'},
+  {n:'Lalande 21185',s:'Lalande',x:2.6,y:7.9,c:'M2V',col:'255,160,110',r:2.6,d:'Červený trpaslík ve Velké medvědici se dvěma planetami'},
+  {n:'Sirius',s:'Sirius',x:-6.2,y:6,c:'A1V',col:'190,215,255',r:4.2,d:'Nejjasnější hvězda noční oblohy, s bílým trpaslíkem Sirius B',pair:1},
+  {n:'Luyten 726-8',s:'Luyten',x:-1.5,y:-8.57,c:'M5.5V',col:'255,125,95',r:2.2,d:'Dvojice vzplanujících trpaslíků – domov hvězdy UV Ceti',pair:1},
+  {n:'Ross 154',s:'Ross 154',lo:'b',x:8.5,y:-4.65,c:'M3.5V',col:'255,135,100',r:2.3,d:'Vzplanující červený trpaslík ve Střelci'},
+  {n:'Epsilon Eridani',s:'ε Eri',lo:'b',x:-8.6,y:6,c:'K2V',col:'255,195,120',r:3,d:'Mladá hvězda s prachovým diskem a obří planetou'},
+  {n:'Tau Ceti',s:'τ Ceti',x:-11.2,y:-4,c:'G8V',col:'255,225,150',r:3.1,d:'Hvězda podobná Slunci s několika kandidátními planetami'}
+];
+const starDist=s=>Math.hypot(s.x-STARS[0].x,s.y-STARS[0].y);
+const smEl=document.getElementById('smap'),smc=document.getElementById('starmap'),sx2=smc.getContext('2d'),sinfo=document.getElementById('sinfo');
+let SMW=260,SMH=200,smSel=0,smHover=-1,smP=0;
+const smDust=[];for(let i=0;i<70;i++)smDust.push({x:Math.random(),y:Math.random(),a:rand(.1,.5),tw:rand(0,6)});
+function sizeSmap(){const r=smc.getBoundingClientRect();SMW=Math.max(100,r.width);SMH=Math.max(80,r.height);smc.width=SMW*DPR;smc.height=SMH*DPR;sx2.setTransform(DPR,0,0,DPR,0,0);}
+function smXY(s){const k=Math.min(SMW/23.5,SMH/18.5);return[SMW/2+(s.x+1.4)*k,SMH/2+(s.y+.35)*k];}
+function smPick(e){const r=smc.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;let best=-1,bd=13;
+  STARS.forEach((s,i)=>{const[p,q]=smXY(s),d=Math.hypot(p-mx,q-my);if(d<bd){bd=d;best=i;}});return best;}
+function setTarget(i,silent){if(i<=0)return;UI.tgt=i;smSel=i;try{localStorage.setItem('kestrel7ui',JSON.stringify(UI));}catch(e){}
+  if(!silent)log(`Navigace: kurz nastaven – ${STARS[i].n} (${starDist(STARS[i]).toFixed(1).replace('.',',')} ly)`,'ok');renderSinfo();}
+smc.addEventListener('mousemove',e=>{smHover=smPick(e);smc.style.cursor=smHover>=0?'pointer':'default';});
+smc.addEventListener('mouseleave',()=>{smHover=-1;});
+smc.addEventListener('click',e=>{const i=smPick(e);if(i<0)return;tone(1500,.05,'square',.03);
+  if(i===0){smSel=0;renderSinfo();return;}
+  if(S.warp){smSel=i;renderSinfo();log('Navigace: kurz nelze měnit během skoku','w');return;}
+  setTarget(i);});
+function renderSinfo(){const s=STARS[smSel],home=smSel===0;
+  const tg=smSel===UI.tgt&&!home;
+  sinfo.innerHTML=`<div class="l1"><b>${s.n.toUpperCase()}</b><i class="${tg?'tg':''}">${s.c} · ${home?'DOMOV':starDist(s).toFixed(1).replace('.',',')+' ly'}${tg?' · CÍL':''}</i></div><div class="d">${s.d}</div>`;}
+function drawSmap(dt,t){
+  smP=S.warp?Math.min(1,smP+dt*.09):Math.max(0,smP-dt*.3);
+  if(smEl.style.display==='none'||document.body.classList.contains('hidehud'))return;
+  const x=sx2,W2=SMW,H2=SMH,lc=S.alert?'255,90,110':'90,240,255',k=Math.min(W2/23.5,H2/18.5);
+  x.clearRect(0,0,W2,H2);
+  let g=x.createRadialGradient(W2*.4,H2*.45,0,W2*.4,H2*.45,W2*.7);g.addColorStop(0,'rgba(60,40,120,.25)');g.addColorStop(1,'rgba(2,6,14,.3)');x.fillStyle=g;x.fillRect(0,0,W2,H2);
+  for(const d of smDust){x.fillStyle=`rgba(220,230,255,${d.a*(.6+.4*Math.sin(t*1.5+d.tw))})`;x.fillRect(d.x*W2,d.y*H2,1,1);}
+  // mřížka po 2 ly
+  x.strokeStyle=`rgba(${lc},.07)`;x.lineWidth=1;
+  for(let v=-14;v<=12;v+=2){const[a]=smXY({x:v,y:0}),[,b]=smXY({x:0,y:v});x.beginPath();x.moveTo(a,0);x.lineTo(a,H2);x.stroke();x.beginPath();x.moveTo(0,b);x.lineTo(W2,b);x.stroke();}
+  const[hx,hy]=smXY(STARS[0]);
+  // dosahové kruhy kolem Proximy
+  x.setLineDash([3,4]);x.strokeStyle=`rgba(${lc},.22)`;
+  for(const r of[5,10]){x.beginPath();x.arc(hx,hy,r*k,0,TAU);x.stroke();x.font='8px "Share Tech Mono",monospace';x.fillStyle=`rgba(${lc},.45)`;x.fillText(r+' ly',hx+r*k*.71+3,hy+r*k*.71);}
+  x.setLineDash([]);
+  // zásobovací trasa Země – Proxima
+  const[sx,sy]=smXY(STARS[1]);x.strokeStyle='rgba(255,220,150,.3)';x.setLineDash([2,3]);x.beginPath();x.moveTo(sx,sy);x.lineTo(hx,hy);x.stroke();x.setLineDash([]);
+  for(let i=0;i<2;i++){const f=(t*.05+i*.5)%1;glow2(x,sx+(hx-sx)*f,sy+(hy-sy)*f,4,'255,220,150',.9);}
+  // cíl skoku
+  const tg=STARS[UI.tgt]||STARS[3],[tx,ty]=smXY(tg);
+  x.strokeStyle=`rgba(${lc},${S.warp?.8:.35})`;x.lineWidth=S.warp?1.6:1;x.setLineDash([6,4]);x.lineDashOffset=-t*20;x.beginPath();x.moveTo(hx,hy);x.lineTo(tx,ty);x.stroke();x.setLineDash([]);x.lineWidth=1;
+  // hvězdy
+  STARS.forEach((s,i)=>{const[p,q]=smXY(s),hov=i===smHover,rr=s.r*(hov?1.35:1);
+    glow2(x,p,q,rr*(hov?5:3.6),s.col,hov?.55:.32);
+    x.fillStyle=`rgb(${s.col})`;x.beginPath();x.arc(p,q,rr*.55,0,TAU);x.fill();x.fillStyle='#fff';x.beginPath();x.arc(p,q,rr*.25,0,TAU);x.fill();
+    if(s.pair){x.fillStyle=`rgba(${s.col},.85)`;x.beginPath();x.arc(p+rr*.9,q-rr*.6,rr*.3,0,TAU);x.fill();}
+    x.font=`${hov||i===smSel?'bold ':''}9px "Share Tech Mono",monospace`;x.fillStyle=hov||i===smSel?'rgba(235,245,255,.95)':'rgba(190,205,230,.65)';
+    const tw2=x.measureText(s.s).width;let lx,ly2=q+3;
+    if(s.lo==='b'){lx=p-tw2/2;ly2=q+rr+11;}else if(s.lo==='l'||p+rr+4+tw2>W2-4){lx=p-rr-5-tw2;}else lx=p+rr+4;
+    x.fillText(s.s,Math.min(W2-tw2-2,Math.max(2,lx)),ly2);});
+  // domovská stanice
+  x.strokeStyle=`rgba(${lc},${1-(t%2)/2})`;x.beginPath();x.arc(hx,hy,4+(t%2)*9,0,TAU);x.stroke();
+  const oa=t*.8;x.fillStyle=`rgb(${lc})`;x.fillRect(hx+Math.cos(oa)*8-1.5,hy+Math.sin(oa)*8-1.5,3,3);
+  // výběr
+  const[ssx,ssy]=smXY(STARS[smSel]),bs=9+Math.sin(t*4)*1.5;
+  x.strokeStyle=smSel===UI.tgt?`rgba(${lc},.95)`:'rgba(255,255,255,.7)';x.lineWidth=1.4;
+  for(const[a,b]of[[-1,-1],[1,-1],[1,1],[-1,1]]){x.beginPath();x.moveTo(ssx+a*bs,ssy+b*(bs-4));x.lineTo(ssx+a*bs,ssy+b*bs);x.lineTo(ssx+a*(bs-4),ssy+b*bs);x.stroke();}
+  // loď při skoku
+  if(smP>0){const px=hx+(tx-hx)*smP,py=hy+(ty-hy)*smP,ang=Math.atan2(ty-hy,tx-hx)+(S.warp?0:Math.PI);
+    g=x.createLinearGradient(px,py,px-Math.cos(ang)*26,py-Math.sin(ang)*26);g.addColorStop(0,'rgba(200,230,255,.9)');g.addColorStop(1,'rgba(120,170,255,0)');
+    x.strokeStyle=g;x.lineWidth=2.4;x.beginPath();x.moveTo(px,py);x.lineTo(px-Math.cos(ang)*26,py-Math.sin(ang)*26);x.stroke();x.lineWidth=1;
+    x.save();x.translate(px,py);x.rotate(ang);x.fillStyle='#fff';x.beginPath();x.moveTo(6,0);x.lineTo(-4,-3.5);x.lineTo(-2,0);x.lineTo(-4,3.5);x.closePath();x.fill();x.restore();
+    if(S.warp){x.font='bold 9px "Share Tech Mono",monospace';x.fillStyle='rgba(220,235,255,.95)';x.fillText(`SKOK ${Math.round(smP*100)} %`,8,H2-8);}}
+  // měřítko
+  x.strokeStyle=`rgba(${lc},.5)`;x.beginPath();x.moveTo(W2-8-2*k,H2-10);x.lineTo(W2-8,H2-10);x.moveTo(W2-8-2*k,H2-13);x.lineTo(W2-8-2*k,H2-7);x.moveTo(W2-8,H2-13);x.lineTo(W2-8,H2-7);x.stroke();
+  x.font='8px "Share Tech Mono",monospace';x.fillStyle=`rgba(${lc},.6)`;x.textAlign='right';x.fillText('2 ly',W2-8,H2-15);x.textAlign='left';
+}
+
 /* ================= AUTOPILOT ================= */
 let autoT=6,warpEnd=0;
 function setAuto(v){UI.auto=v;try{localStorage.setItem('kestrel7ui',JSON.stringify(UI));}catch(e){}
@@ -812,7 +1030,7 @@ setInterval(()=>{
   if(!S.reactor){log('Autopilot: zapínám reaktor','');toggle('reactor','auto');autoT=8;return;}
   const r=Math.random();
   if(r<.35)toggle('scan','auto');
-  else if(r<.55&&!S.warp&&!swarmPending){log('Autopilot: plánovaný skok hyperprostorem','');toggle('warp','auto');warpEnd=Date.now()+rand(8000,15000);}
+  else if(r<.55&&!S.warp&&!swarmPending&&RES.fuel>25){setTarget(1+Math.random()*(STARS.length-1)|0,true);log(`Autopilot: kurz ${STARS[UI.tgt].n}`,'');toggle('warp','auto');warpEnd=Date.now()+rand(8000,15000);}
   else if(r<.8){if(S.shield&&!swarmPending&&!meteors.length)toggle('shield','auto');else if(!S.shield)toggle('shield','auto');}
   else log(['Autopilot: korekce dráhy +0,3 m/s','Autopilot: rutinní diagnostika systémů – v normě','Autopilot: optimalizace rozvodu energie'][Math.random()*3|0],'');
 },1000);
@@ -903,6 +1121,9 @@ function frame(now){
   drawMeteors(dt,t);
   try{drawCam1(dt,t);drawCam2(dt,t);}catch(e){console.error(e);}
   try{drawNav(dt,t);}catch(e){console.error(e);}
+  updRes(dt);
+  try{drawEnergy(dt,t);}catch(e){console.error(e);}
+  try{drawSmap(dt,t);}catch(e){console.error(e);}
   if(warpA>.01){const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.2,W/2,H/2,Math.max(W,H)*.7);g.addColorStop(0,'rgba(80,140,255,0)');g.addColorStop(1,`rgba(80,140,255,${.22*warpA})`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
   if(alertA>.01){ctx.fillStyle=`rgba(255,0,40,${alertA*.07*(.5+.5*Math.sin(t*4.5))})`;ctx.fillRect(0,0,W,H);}
   if(flash>.01){ctx.fillStyle=`rgba(220,235,255,${flash*.5})`;ctx.fillRect(0,0,W,H);flash-=dt*1.5;}
@@ -1286,7 +1507,7 @@ function buildPlanet(){
   x.fillStyle=g;x.beginPath();x.arc(px,py,pr*1.16,0,TAU);x.fill();
   const tp=planetTex(px,py,pr,'ocean',.55,3.7);if(tp)x.drawImage(tp.cv,tp.x,tp.y,tp.w,tp.h);
   x.strokeStyle='rgba(170,230,255,.6)';x.lineWidth=2;x.beginPath();x.arc(px,py,pr,Math.PI*1.02,Math.PI*1.42);x.stroke();
-  const mx=W*.29,my=H*.17,mr=m*.042;
+  const mx=Math.max(W*.335,600),my=H*.08,mr=m*.036;
   const tm=planetTex(mx,my,mr,'moon',1.5,11.3);if(tm)x.drawImage(tm.cv,tm.x,tm.y,tm.w,tm.h);
   const gx=W*.665,gy=H*.115,gr=m*.032;
   planetRing(x,gx,gy,gr,true);const tg=planetTex(gx,gy,gr,'gas',2,7.1);if(tg)x.drawImage(tg.cv,tg.x,tg.y,tg.w,tg.h);planetRing(x,gx,gy,gr,false);
@@ -1417,7 +1638,9 @@ function renderTV(){
 }
 
 /* ================= START ================= */
-let UI={nolog:false};try{UI=Object.assign(UI,JSON.parse(localStorage.getItem('kestrel7ui')||'{}'));}catch(e){}
+let UI={nolog:false,tgt:3};try{UI=Object.assign(UI,JSON.parse(localStorage.getItem('kestrel7ui')||'{}'));}catch(e){}
+if(!(UI.tgt>0&&UI.tgt<STARS.length))UI.tgt=3;
+smSel=UI.tgt;renderSinfo();
 const logBtn=document.getElementById('logbtn');
 function applyLog(){document.body.classList.toggle('nolog',!!UI.nolog);logBtn.style.opacity=UI.nolog?.55:1;logBtn.textContent=UI.nolog?'☰ ZÁZNAM: VYP':'☰ ZÁZNAM';layout();}
 logBtn.onclick=()=>{UI.nolog=!UI.nolog;try{localStorage.setItem('kestrel7ui',JSON.stringify(UI));}catch(e){}applyLog();tone(1800,.05,'square',.03);};
@@ -1426,7 +1649,7 @@ document.getElementById('autobtn').onclick=()=>setAuto(!UI.auto);
 if(UI.auto){const b=document.getElementById('autobtn');b.classList.add('act');b.textContent='⟳ AUTO: ZAP';}
 addEventListener('resize',resize);
 resize();sizeCams();applyLog();renderTV();setInterval(renderTV,1000);loadSlavia();setInterval(loadSlavia,6*3600*1000);refreshUI();requestAnimationFrame(frame);
-[['Systémy můstku inicializovány','ok'],['Spojení s orbitální sítí navázáno',''],['Tip: 1–5 spínače · A autopilot · M zvuk · F celá obrazovka · H/dvojklik skryje panely · klik na kameru zvětší','']].forEach((m,i)=>setTimeout(()=>log(m[0],m[1]),400+i*900));
+[['Systémy můstku inicializovány','ok'],['Spojení s orbitální sítí navázáno',''],['Tip: 1–5 spínače · A autopilot · M zvuk · F celá obrazovka · H/dvojklik skryje panely · klik na kameru zvětší · klik na hvězdu = cíl skoku','']].forEach((m,i)=>setTimeout(()=>log(m[0],m[1]),400+i*900));
 })();
 </script>
 </body>
