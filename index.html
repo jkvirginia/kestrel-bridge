@@ -393,7 +393,7 @@ function toggle(k,src){
   S[k]=!S[k];
   if(k==='reactor'&&!S.reactor&&S.warp){S.warp=false;log('Hyperpohon nouzově vypnut – ztráta energie','w');}
   const m=(k==='warp'&&S.warp)?[`Hyperpohon: skok zahájen – cíl ${STARS[UI.tgt].n} (${starDist(STARS[UI.tgt]).toFixed(1).replace('.',',')} ly)`,'ok']:MSG[k][S[k]?0:1];log(m[0],m[1]);aiReact(k);
-  if(k==='warp'&&S.warp)flash=1;
+  if(k==='warp'){SM.kick=1;if(S.warp)flash=1;}
   if(k==='shield'&&S.shield)shieldRipple=0;
   refreshUI();save();sfx(k);setHum();
 }
@@ -695,36 +695,61 @@ function drawScanner(dt,t){
 
 /* ---------- stanice: 3D prstenec ---------- */
 function torus(R,w,th,rotA,back,o,t,lc){
-  const ri=R-w/2,ro=R+w/2,n=o.seg;
+  const ri=R-w/2,ro=R+w/2,n=o.seg,lit=Math.max(reactA,.3);
   for(let i=0;i<n;i++){
-    const a0=i/n*TAU,a1=(i+1)/n*TAU,am=(a0+a1)/2;if(!vis(am,back))continue;
+    const a0=rotA+i/n*TAU,a1=rotA+(i+1)/n*TAU,am=(a0+a1)/2;if(!vis(am,back))continue;
     const L=28+16*Math.cos(am-LIGHT);
     const rr=back?ri:ro;
     poly([P(rr,a0),P(rr,a1),P(rr,a1,th),P(rr,a0,th)],`hsl(218,24%,${(L*(back?.5:.58)).toFixed(1)}%)`);
     poly([P(ri,a0),P(ro,a0),P(ro,a1),P(ri,a1)],`hsl(215,19%,${L.toFixed(1)}%)`);
+    // prosklená střecha – parky a hydroponie (je vidět zeleň a světla uvnitř)
+    if(o.garden&&i%6){const g1=R-w*.26,g2=R+w*.26,ga=.16+.46*reactA*lit;
+      poly([P(g1,a0),P(g2,a0),P(g2,a1),P(g1,a1)],S.alert?`rgba(150,70,80,${ga})`:`rgba(55,150,100,${ga})`);
+      const hv=hsh(i,7,n);
+      if(hv<.75){const q=P(R+(hv-.37)*w*.55,am);ctx.fillStyle=`rgba(25,${95+70*reactA|0},55,${.55+.4*reactA})`;ctx.beginPath();ctx.arc(q[0],q[1],w*.05,0,TAU);ctx.fill();}
+      if(hv>.6){const q=P(R-(hv-.6)*w*.6,a0+(a1-a0)*.3);ctx.fillStyle=`rgba(255,220,160,${(.3+.6*reactA)*(.7+.3*Math.sin(t*2+i))})`;ctx.fillRect(q[0]-.8,q[1]-.8,1.6,1.6);}
+    }
   }
+  if(o.garden){ // odlesk skla na střeše
+    ctx.strokeStyle=`rgba(200,235,255,${.12+.1*reactA})`;ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(ST.cx,ST.cy,R+w*.26,(R+w*.26)*TILT,0,back?Math.PI:0,back?TAU:Math.PI);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(ST.cx,ST.cy,R-w*.26,(R-w*.26)*TILT,0,back?Math.PI:0,back?TAU:Math.PI);ctx.stroke();}
   // hrana a světelný pás
   ctx.strokeStyle='rgba(190,210,240,.18)';ctx.lineWidth=1;
   ctx.beginPath();ctx.ellipse(ST.cx,ST.cy,ro,ro*TILT,0,back?Math.PI:0,back?TAU:Math.PI);ctx.stroke();
-  ctx.strokeStyle=`rgba(${lc},${.1+.45*reactA})`;ctx.lineWidth=1.4;
-  ctx.beginPath();ctx.ellipse(ST.cx,ST.cy,R,R*TILT,0,back?Math.PI:0,back?TAU:Math.PI);ctx.stroke();
+  if(!o.garden){ctx.strokeStyle=`rgba(${lc},${.1+.45*reactA})`;ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.ellipse(ST.cx,ST.cy,R,R*TILT,0,back?Math.PI:0,back?TAU:Math.PI);ctx.stroke();}
   // spáry panelů
   ctx.strokeStyle='rgba(3,6,12,.6)';ctx.lineWidth=1;
   for(let k=0;k<o.seams;k++){const a=rotA+k*TAU/o.seams;if(!vis(a,back))continue;
     line(P(ri,a),P(ro,a));const rr=back?ri:ro;line(P(rr,a),P(rr,a,th));}
-  // okna ve stěně
-  const rr=back?ri:ro;
+  // okna ve stěně – obytné kajuty (teplé), laboratoře (studené), skleníky (zelené); občas kolem okna někdo projde
+  const rr=back?ri:ro,rows=o.rows||1;
   for(let j=0;j<o.nl;j++){const a=rotA+j*TAU/o.nl;if(!vis(a,back))continue;
-    const lit=reactA>.5?(j%4!==0):(j%o.sparse===0),d=.35+.65*Math.abs(Math.sin(a));
-    const al=d*(lit?1:.07)*(.75+.25*Math.sin(t*2.3+j*1.9))*(.35+.65*Math.max(reactA,.3));
-    const p=P(rr,a,th*.5);ctx.fillStyle=`rgba(${lc},${al})`;ctx.fillRect(p[0]-1.5,p[1]-1,3,2);}
-  // moduly na prstenci
+    const hv=hsh(j,3,o.nl),d=.35+.65*Math.abs(Math.sin(a)),da=TAU/o.nl*.27;
+    const p1=P(rr,a-da),p2=P(rr,a+da),wd=Math.max(1.2,Math.abs(p2[0]-p1[0])),wx=(p1[0]+p2[0])/2;
+    const col=hv<.55?'255,214,160':hv<.82?lc:'150,255,180';
+    for(let r=0;r<rows;r++){
+      const on=reactA>.5?hsh(j,r+11,5)>.16:hsh(j,r+11,5)<1/o.sparse;
+      const walk=((t*.21+hsh(j,r,9)*9)%1)<.05;
+      const al=d*(on?(walk?.2:1):.06)*(.88+.12*Math.sin(t*1.3+j*1.9+r))*(.35+.65*lit);
+      const y=P(rr,a,th*(rows>1?(.3+.38*r):.5))[1],hh=Math.max(1.3,th*(rows>1?.16:.24));
+      ctx.fillStyle=`rgba(${col},${al*.22})`;ctx.fillRect(wx-wd/2-1.2,y-hh/2-1.2,wd+2.4,hh+2.4);
+      ctx.fillStyle=`rgba(${col},${al})`;ctx.fillRect(wx-wd/2,y-hh/2,wd,hh);
+    }}
+  // obíhající výstražné záblesky na hraně prstence
+  for(let k=0;k<(o.strobes||0);k++){const a=rotA+k*TAU/o.strobes+.1;if(!vis(a,back))continue;
+    if(((t*.8+k/o.strobes)%1)<.045){const p=P(rr,a,-1);glow(p[0],p[1],R*.03,'255,255,255',.95);}}
+  // moduly na prstenci (s anténami)
   for(let k=0;k<o.mods;k++){const a=rotA+k*TAU/o.mods+.2;if(!vis(a,back))continue;
     const da=o.mw/R,hh=th*.85,r1=ri+w*.12,r2=ro-w*.12,L=33+16*Math.cos(a-LIGHT),sr=back?r1:r2;
     poly([P(sr,a-da,-hh),P(sr,a+da,-hh),P(sr,a+da),P(sr,a-da)],`hsl(216,22%,${(L*.6).toFixed(1)}%)`);
     poly([P(r1,a-da,-hh),P(r2,a-da,-hh),P(r2,a+da,-hh),P(r1,a+da,-hh)],`hsl(214,17%,${(L+8).toFixed(1)}%)`,'rgba(180,200,230,.35)');
     const c=P((r1+r2)/2,a,-hh);ctx.fillStyle=`rgba(${lc},${(.25+.75*reactA)*(Math.sin(t*3+k*2)>-.2?1:.3)})`;ctx.beginPath();ctx.arc(c[0],c[1],1.8,0,TAU);ctx.fill();
-    for(let q=-1;q<=1;q+=2){const p=P(sr,a+q*da*.5,-hh*.45);ctx.fillStyle=`rgba(${lc},${(.15+.6*reactA)})`;ctx.fillRect(p[0]-1,p[1]-1,2,2);}
+    for(let q=-1;q<=1;q+=2){const p=P(sr,a+q*da*.5,-hh*.45);ctx.fillStyle=`rgba(255,214,160,${(.2+.7*reactA)})`;ctx.fillRect(p[0]-1.2,p[1]-1,2.4,2);}
+    if(k%2===0){const tip=[c[0],c[1]-R*.055];ctx.strokeStyle='rgba(170,185,210,.8)';ctx.lineWidth=1;line(c,tip);line([tip[0]-R*.012,tip[1]+R*.015],[tip[0]+R*.012,tip[1]+R*.015]);
+      if(Math.sin(t*2.4+k)>.75)glow(tip[0],tip[1],R*.02,'255,80,80',1);}
+    else{const p=P(sr,a,-hh*1.15);ctx.fillStyle='#b9c6d8';ctx.beginPath();ctx.ellipse(p[0],p[1],R*.016,R*.007,0,Math.PI,TAU);ctx.fill();}
   }
 }
 function tube(p,q,w){ctx.lineCap='round';ctx.strokeStyle='#0f1622';ctx.lineWidth=w;line(p,q);ctx.strokeStyle='#4d5f7c';ctx.lineWidth=w*.35;line([p[0],p[1]-w*.22],[q[0],q[1]-w*.22]);}
@@ -775,21 +800,98 @@ function drones(back,t){
     if(Math.sin(t*6+k*2)>.4)glow(p[0]+5,p[1],7,k%2?'90,255,140':'255,90,90',1);}
 }
 
+/* ---------- pohyb stanice: občasný náklon doleva/doprava, houpání při hyperpohonu ---------- */
+const SM={roll:0,rt:0,next:5,ox:0,oy:0,sc:1,kick:0,rv:0,puffs:[]};
+function updStationMotion(dt,t){
+  SM.next-=dt;
+  if(SM.next<=0){SM.next=rand(8,18);SM.rt=Math.random()<.3?0:rand(.035,.09)*(Math.random()<.5?-1:1);}
+  const w=warpA,old=SM.roll;
+  const target=SM.rt*(1-w*.6)+w*(Math.sin(t*.9)*.05+Math.sin(t*2.3)*.015);
+  SM.roll+=(target-SM.roll)*Math.min(1,dt*(.45+1.2*w));
+  SM.rv=(SM.roll-old)/Math.max(dt,.001);
+  SM.kick=Math.max(0,SM.kick-dt*.7);
+  SM.ox=w*(Math.sin(t*.7)*ST.R*.05+Math.sin(t*3.1)*1.5)+SM.kick*Math.sin(t*23)*5;
+  SM.oy=w*(Math.sin(t*1.3)*ST.R*.025-ST.R*.02)+SM.kick*Math.cos(t*19)*3.5;
+  SM.sc=1+w*(.03+.01*Math.sin(t*1.9))-SM.kick*.02;
+}
+function stationXf(){const{cx,cy}=ST;ctx.translate(cx+SM.ox,cy+SM.oy);ctx.rotate(SM.roll);ctx.scale(SM.sc,SM.sc);ctx.translate(-cx,-cy);}
+/* ---------- doky s raketoplány (napojené na stav doků v navigaci) ---------- */
+function drawDocks(t,lc){
+  const cx=ST.cx,cy=ST.cy,R=ST.R,ths=[-1.15,-.45,.45,1.15];
+  DOCKS.forEach((d,i)=>{
+    const th=ths[i],s=Math.sin(th),bx=cx+R*.125*s,by=cy+R*.55+R*.125*TILT*Math.cos(th),dir=s<0?-1:1;
+    const ex=bx+dir*R*(.05+.03*Math.abs(s)),ey=by+R*.015;
+    ctx.lineCap='butt';ctx.strokeStyle='#2a3446';ctx.lineWidth=R*.02;line([bx,by],[ex,ey]);
+    ctx.strokeStyle='#7f8ea8';ctx.lineWidth=R*.008;line([bx,by-R*.004],[ex,ey-R*.004]);
+    ctx.fillStyle='#9aa8be';ctx.fillRect(ex-R*.008,ey-R*.017,R*.016,R*.034);
+    if(d.st==='docked'){
+      ctx.save();ctx.translate(ex+dir*R*.008,ey);ctx.scale(dir,1);
+      const L=R*.11,Wd=R*.036,g=ctx.createLinearGradient(0,-Wd/2,0,Wd/2);g.addColorStop(0,'#eef3fa');g.addColorStop(.45,'#a5b2c6');g.addColorStop(1,'#323c4e');
+      ctx.fillStyle='#4a5568';ctx.beginPath();ctx.moveTo(L*.55,-Wd*.4);ctx.lineTo(L*.85,-Wd*1.15);ctx.lineTo(L*.95,-Wd*1.15);ctx.lineTo(L*.85,-Wd*.3);ctx.closePath();ctx.fill();
+      ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(0,-Wd*.35);ctx.quadraticCurveTo(L*.05,-Wd*.5,L*.2,-Wd*.5);ctx.lineTo(L,-Wd*.45);ctx.lineTo(L,Wd*.45);ctx.lineTo(L*.2,Wd*.5);ctx.quadraticCurveTo(L*.05,Wd*.5,0,Wd*.35);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#5b6880';ctx.beginPath();ctx.moveTo(L*.5,Wd*.4);ctx.lineTo(L*.88,Wd*1.1);ctx.lineTo(L*.98,Wd*1.1);ctx.lineTo(L*.9,Wd*.35);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#c0392b';ctx.fillRect(L*.3,-Wd*.08,L*.5,Wd*.14);
+      for(let k=0;k<4;k++){ctx.fillStyle=`rgba(255,214,160,${.5+.4*Math.sin(t*1.5+k+i)})`;ctx.fillRect(L*(.3+k*.12),-Wd*.32,L*.05,Wd*.14);}
+      ctx.fillStyle='#202834';ctx.fillRect(L,-Wd*.38,L*.05,Wd*.76);
+      cglowCtx(L*1.06,0,Wd*.6,'120,190,255',.25+.15*Math.sin(t*9+i));
+      if(Math.sin(t*3+i*1.7)>.6){cglowCtx(L*.92,-Wd*1.15,R*.012,'255,70,70',1);cglowCtx(L*.95,Wd*1.1,R*.012,'70,255,120',1);}
+      ctx.restore();
+      ctx.font=`${Math.max(7,R*.026)|0}px "Share Tech Mono",monospace`;ctx.textAlign=dir>0?'left':'right';ctx.fillStyle=`rgba(${lc},.55)`;
+      ctx.fillText(d.ship,ex+dir*R*.02,ey+R*.07);ctx.textAlign='left';
+    }else if(d.st==='approach'){for(let k=0;k<3;k++){const on=((t*3-k*.25)%1)<.35;glow(ex+dir*R*(.03+k*.035),ey,R*.02,'255,209,102',on?1:.15);}}
+    else glow(ex,ey,R*.016,'120,255,160',Math.sin(t*1.5+i)>0?.8:.3);
+  });
+}
+function cglowCtx(x,y,r,col,a){glow(x,y,r,col,a);}
+/* ---------- robotické rameno na věži ---------- */
+function roboArm(t){
+  const cx=ST.cx,cy=ST.cy,R=ST.R,b=[cx-R*.062,cy-R*.36],a1=Math.PI+.45+Math.sin(t*.13)*.4;
+  const j=[b[0]+Math.cos(a1)*R*.15,b[1]+Math.sin(a1)*R*.15],a2=a1-1.25+Math.sin(t*.19+1)*.55,e=[j[0]+Math.cos(a2)*R*.12,j[1]+Math.sin(a2)*R*.12];
+  ctx.lineCap='round';ctx.strokeStyle='#141b27';ctx.lineWidth=R*.024;line(b,j);line(j,e);
+  ctx.strokeStyle='#d3dbe8';ctx.lineWidth=R*.012;line(b,j);line(j,e);
+  ctx.fillStyle='#5b6a84';for(const p of[b,j]){ctx.beginPath();ctx.arc(p[0],p[1],R*.015,0,TAU);ctx.fill();}
+  ctx.fillStyle='#e8b830';ctx.save();ctx.translate(e[0],e[1]);ctx.rotate(a2);ctx.fillRect(-R*.004,-R*.012,R*.022,R*.024);ctx.restore();
+  glow(e[0],e[1],R*.03,'255,235,180',.35+.25*Math.sin(t*3));
+}
+/* ---------- astronaut na výstupu do volného prostoru (opravuje prstenec) ---------- */
+function eva(t,R,w,th,rotA){
+  const a=rotA+2.3;if(!vis(a,false))return;
+  const wall=P(R+w/2,a,th*.35),p=P(R+w/2+R*.07,a+.02,-R*.03+Math.sin(t*.8)*R*.012);
+  ctx.strokeStyle='rgba(220,230,245,.55)';ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(wall[0],wall[1]);
+  ctx.quadraticCurveTo((wall[0]+p[0])/2,(wall[1]+p[1])/2+R*.035,p[0],p[1]+R*.008);ctx.stroke();
+  const s=Math.max(2.2,R*.014);
+  ctx.save();ctx.translate(p[0],p[1]);ctx.rotate(Math.sin(t*.5)*.3);
+  ctx.fillStyle='#8c96a6';ctx.fillRect(-s*.75,-s*.1,s*.5,s*1.1);
+  ctx.fillStyle='#eef2f8';ctx.fillRect(-s*.45,0,s*.9,s*1.25);ctx.fillRect(-s*.4,s*1.2,s*.3,s*.8);ctx.fillRect(s*.1,s*1.2,s*.3,s*.8);
+  ctx.fillRect(s*.4,s*.15,s*.7,s*.25);
+  ctx.beginPath();ctx.arc(0,-s*.35,s*.55,0,TAU);ctx.fill();
+  ctx.fillStyle='#d9a12a';ctx.fillRect(-s*.1,-s*.55,s*.5,s*.35);
+  ctx.restore();
+  glow(p[0]+s*.2,p[1]-s*.35,s*4,'255,240,200',.3);
+  if(t%6<2.6){const wx=p[0]+s*1.2,wy=p[1]+s*.3;glow(wx,wy,s*(3+Math.random()*2),'190,225,255',.55+.4*Math.random());
+    for(let i=0;i<3;i++){ctx.fillStyle=`rgba(255,230,160,${Math.random()})`;ctx.fillRect(wx+(Math.random()-.5)*s*4,wy+Math.random()*s*3,1.2,1.2);}}
+}
+
 function drawStation(dt,t){
   const R=ST.R,lc=S.alert?'255,70,90':'90,240,255';
-  const shake=warpA*1.5+hitShake*3,cx0=ST.cx,cy0=ST.cy;
+  ctx.save();stationXf();
+  const shake=warpA*.6+hitShake*3,cx0=ST.cx,cy0=ST.cy;
   ST.cx+=(Math.random()-.5)*shake;ST.cy+=Math.sin(t*.35)*4+(Math.random()-.5)*shake;
   const cx=ST.cx,cy=ST.cy;
   glow(cx,cy,R*1.4,lc,.05+.16*reactA);
   rot+=dt*(.05+.18*reactA);rot2-=dt*(.08+.3*reactA);
-  const OUT={seg:90,nl:130,sparse:9,seams:36,mods:8,mw:R*.075};
-  const INN={seg:64,nl:70,sparse:6,seams:24,mods:6,mw:R*.05};
+  const OUT={seg:96,nl:150,sparse:9,seams:36,mods:8,mw:R*.075,rows:2,garden:1,strobes:8};
+  const INN={seg:64,nl:72,sparse:6,seams:24,mods:6,mw:R*.05,strobes:4};
   drones(true,t);
   torus(R,R*.16,R*.075,rot,true,OUT,t,lc);
   torus(R*.58,R*.085,R*.045,rot2,true,INN,t,lc);
   const spokes=[];for(let k=0;k<4;k++)spokes.push(rot+k*Math.PI/2+Math.PI/4);
   const spoke=a=>{const p=P(R*.14,a),q=P(R-R*.08,a);tube(p,q,R*.032);
-    if(reactA>.05)for(let i=0;i<4;i++){const f=(t*.5+i/4)%1;glow(p[0]+(q[0]-p[0])*f,p[1]+(q[1]-p[1])*f,R*.028,lc,reactA*(1-f));}};
+    if(reactA>.05)for(let i=0;i<4;i++){const f=(t*.5+i/4)%1;glow(p[0]+(q[0]-p[0])*f,p[1]+(q[1]-p[1])*f,R*.028,lc,reactA*(1-f));}
+    // výtah / kabina jezdící po paprsku
+    const f=.5-.5*Math.cos(t*.3+a*2.7),tp=[p[0]+(q[0]-p[0])*f,p[1]+(q[1]-p[1])*f-R*.006];
+    ctx.fillStyle='#d5deeb';ctx.fillRect(tp[0]-R*.02,tp[1]-R*.012,R*.04,R*.022);
+    ctx.fillStyle=`rgba(255,214,160,${.4+.6*Math.max(reactA,.3)})`;ctx.fillRect(tp[0]-R*.014,tp[1]-R*.007,R*.028,R*.008);};
   spokes.filter(a=>Math.sin(a)<0).forEach(spoke);
   radiators(t);
   solar(-1,cy-R*.45,t);solar(1,cy-R*.45,t);
@@ -798,19 +900,30 @@ function drawStation(dt,t){
   line([cx-R*.05,cy-R*.86],[cx+R*.05,cy-R*.86]);line([cx-R*.03,cy-R*.92],[cx+R*.03,cy-R*.92]);
   // věž
   cyl(cy-R*.6,cy-R*.16,R*.062);for(let i=0;i<3;i++)cylRing(cy-R*(.47-i*.1),R*.062);
-  for(let i=0;i<5;i++)cylWindows(cy-R*.55+i*R*.075,R*.062,lc,t,3);
+  for(let i=0;i<5;i++)cylWindows(cy-R*.55+i*R*.075,R*.062,i%2?'255,214,160':lc,t,3);
+  roboArm(t);
   cyl(cy+R*.15,cy+R*.5,R*.072);for(let i=0;i<3;i++)cylRing(cy+R*(.25+i*.08),R*.072);
-  for(let i=0;i<4;i++)cylWindows(cy+R*.2+i*R*.08,R*.072,lc,t,3);
+  for(let i=0;i<4;i++)cylWindows(cy+R*.2+i*R*.08,R*.072,i%2?lc:'255,214,160',t,3);
   cyl(cy+R*.5,cy+R*.6,R*.125);
   for(let k=-3;k<=3;k++){const th=k*.42,x=cx+R*.125*Math.sin(th),y=cy+R*.56+R*.125*TILT*Math.cos(th);
     ctx.fillStyle='#070b12';ctx.fillRect(x-3,y-3,6,6);ctx.fillStyle=`rgba(120,255,160,${(Math.sin(t*2+k)>0?.9:.25)*Math.cos(th)})`;ctx.fillRect(x-1,y-1,2,2);}
+  drawDocks(t,lc);
   cyl(cy+R*.6,cy+R*.72,R*.05);
   ctx.fillStyle='#2c3a52';ctx.beginPath();ctx.moveTo(cx-R*.05,cy+R*.72);ctx.lineTo(cx+R*.05,cy+R*.72);ctx.lineTo(cx,cy+R*.86);ctx.closePath();ctx.fill();
   if((t+.6)%1.2<.15)glow(cx,cy+R*.86,R*.05,'120,255,160',1);
+  // přistávací reflektor dolů
+  {const g=ctx.createLinearGradient(0,cy+R*.86,0,cy+R*1.3);g.addColorStop(0,`rgba(200,235,255,${.12+.1*reactA})`);g.addColorStop(1,'rgba(200,235,255,0)');
+   ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(cx-R*.01,cy+R*.86);ctx.lineTo(cx-R*.09,cy+R*1.3);ctx.lineTo(cx+R*.09,cy+R*1.3);ctx.lineTo(cx+R*.01,cy+R*.86);ctx.closePath();ctx.fill();}
   // velitelský modul + parabola
   ctx.strokeStyle='#8a9ab4';ctx.lineWidth=2;line([cx+R*.06,cy-R*.66],[cx+R*.16,cy-R*.74]);
   sphere(cx,cy-R*.64,R*.11);
-  for(let k=-5;k<=5;k++){const th=k*.25,x=cx+R*.105*Math.sin(th),y=cy-R*.63+R*.105*.35*Math.cos(th);ctx.fillStyle=`rgba(${lc},${Math.cos(th)*(.3+.7*reactA)})`;ctx.fillRect(x-1.3,y-1,2.6,2);}
+  // panoramatické okno můstku a vyhlídková kopule
+  ctx.fillStyle=`rgba(255,214,160,${.2+.55*Math.max(reactA,.3)})`;ctx.beginPath();ctx.ellipse(cx,cy-R*.6,R*.085,R*.02,0,0,Math.PI);ctx.fill();
+  ctx.fillStyle='rgba(20,15,10,.6)';for(let k=-3;k<=3;k++)ctx.fillRect(cx+k*R*.024-.6,cy-R*.6,1.2,R*.02*Math.sqrt(Math.max(0,1-(k/3.6)**2)));
+  for(const k of[-1.6,.9]){const ph=(t*.12+k)%2,x=cx+(ph-1)*R*.07;if(ph<2)ctx.fillStyle='rgba(30,22,14,.8)',ctx.fillRect(x-1,cy-R*.597,2.2,R*.014);}
+  for(let k=-5;k<=5;k++){const th=k*.25,x=cx+R*.105*Math.sin(th),y=cy-R*.66+R*.105*.35*Math.cos(th);ctx.fillStyle=`rgba(${lc},${Math.cos(th)*(.3+.7*reactA)})`;ctx.fillRect(x-1.3,y-1,2.6,2);}
+  {const g=ctx.createRadialGradient(cx-R*.015,cy-R*.75,0,cx,cy-R*.735,R*.05);g.addColorStop(0,'rgba(220,245,255,.55)');g.addColorStop(1,`rgba(${lc},${.12+.25*reactA})`);
+   ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(cx,cy-R*.735,R*.045,R*.03,0,Math.PI,TAU);ctx.fill();ctx.strokeStyle='rgba(200,225,255,.55)';ctx.lineWidth=1;ctx.stroke();}
   ctx.save();ctx.translate(cx+R*.17,cy-R*.75);ctx.rotate(-.7+Math.sin(t*.3)*.15);
   const dg=ctx.createLinearGradient(-R*.07,0,R*.07,0);dg.addColorStop(0,'#2a3448');dg.addColorStop(.5,'#d3dcea');dg.addColorStop(1,'#3a465c');
   ctx.fillStyle=dg;ctx.beginPath();ctx.ellipse(0,0,R*.07,R*.028,0,0,TAU);ctx.fill();ctx.strokeStyle='#9aa8be';ctx.lineWidth=1;line([0,0],[0,-R*.05]);ctx.restore();
@@ -829,16 +942,29 @@ function drawStation(dt,t){
   spokes.filter(a=>Math.sin(a)>=0).forEach(spoke);
   torus(R*.58,R*.085,R*.045,rot2,false,INN,t,lc);
   torus(R,R*.16,R*.075,rot,false,OUT,t,lc);
+  eva(t,R,R*.16,R*.075,rot);
+  // motory hyperpohonu na prstenci a pod stanicí
+  if(warpA>.02){const fl=.8+.2*Math.sin(t*31);
+    for(let k=0;k<4;k++){const a=k*Math.PI/2+Math.PI/4,p=P(R*1.09,a,R*.04);glow(p[0],p[1],R*.09*fl,'140,200,255',(vis(a,false)?.75:.35)*warpA);}
+    glow(cx,cy+R*.9,R*.2*fl,'150,210,255',.7*warpA);glow(cx,cy+R*.9,R*.06,'255,255,255',warpA);}
+  // korekční trysky při naklánění
+  if(Math.abs(SM.rv)>.01&&Math.random()<.35){const side=SM.rv>0?1:-1;
+    SM.puffs.push({x:cx-side*R*1.1,y:cy-R*.03,vx:-side*rand(20,45),vy:rand(-8,8),life:1});
+    SM.puffs.push({x:cx+side*R*1.1,y:cy+R*.06,vx:side*rand(20,45),vy:rand(-8,8),life:1});}
+  for(let i=SM.puffs.length-1;i>=0;i--){const f=SM.puffs[i];f.x+=f.vx*dt;f.y+=f.vy*dt;f.life-=dt*2.2;if(f.life<=0){SM.puffs.splice(i,1);continue;}
+    glow(f.x,f.y,R*(.02+(1-f.life)*.05),'230,240,255',.5*f.life);}
   // poziční světla a maják
   if(t%1.6<.18){const l=P(R*1.08,Math.PI,R*.035),r=P(R*1.08,0,R*.035);glow(l[0],l[1],R*.07,'255,60,60',1);glow(r[0],r[1],R*.07,'60,255,120',1);}
   const bc=S.alert?'255,40,60':'255,80,80';
   if((t%1.2)<.15||S.alert&&Math.sin(t*8)>0)glow(cx,cy-R*.98,R*.09,bc,1);
   drones(false,t);
   ST.cx=cx0;ST.cy=cy0;
+  ctx.restore();
 }
 
 function drawShield(dt,t){
   if(shieldA<.01)return;
+  ctx.save();stationXf();
   const{cx,cy,rx,ry,hs}=ST;shieldRipple+=dt;
   ctx.save();ctx.globalAlpha=shieldA*(1-.85*HG.a);
   let g=ctx.createRadialGradient(cx,cy,ry*.5,cx,cy,rx);g.addColorStop(0,'rgba(140,120,255,0)');g.addColorStop(.85,'rgba(140,120,255,.08)');g.addColorStop(1,'rgba(170,150,255,.28)');
@@ -858,6 +984,7 @@ function drawShield(dt,t){
   }
   ctx.restore();
   ctx.save();ctx.globalAlpha=shieldA*(1-.85*HG.a);ctx.strokeStyle='rgba(200,190,255,.6)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,TAU);ctx.stroke();ctx.restore();
+ctx.restore();
 }
 
 function drawShips(dt,t){
@@ -1221,8 +1348,6 @@ function drawNav(dt,t){
   x.strokeStyle=`rgba(${lc},.9)`;x.lineWidth=2;x.beginPath();x.arc(c,c,34,sa-.9,sa);x.stroke();x.lineWidth=1;
   // objekty relativně ke stanici
   const k=46/Math.max(W,H),mp=(px,py)=>[sx+(px-ST.cx)*k,sy+(py-ST.cy)*k];
-  if(FR.active){const[p,q]=mp(FR.x,FR.y);x.fillStyle='rgba(255,110,90,.95)';x.fillRect(p-3,q-1.5,6,3);
-    x.font='7px "Share Tech Mono",monospace';x.fillStyle='rgba(255,140,120,.8)';x.fillText('KARMÍN-9',Math.min(NS-38,Math.max(2,p-16)),q-4);}
   for(const s of ships){const[p,q]=mp(s.x,s.y);x.fillStyle='#ffd166';x.fillRect(p-1.5,q-1.5,3,3);}
   for(const m of meteors){const[p,q]=mp(m.x,m.y);x.fillStyle='rgba(255,150,80,.95)';x.beginPath();x.arc(p,q,1.6,0,TAU);x.fill();}
   for(const cm of comets){const[p,q]=mp(cm.x,cm.y);glow2(x,p,q,5,cm.hue,.9);}
@@ -1403,7 +1528,6 @@ function holoInfo(id,t){
     case'c':return['PROXIMA c','Super-Země / mini-Neptun','Oběh 5,2 roku · 1,5 AU',`Vzdálenost od K-7: ${(1.45+Math.sin(t*.01)*.05).toFixed(2).replace('.',',')} AU`];
     case'moon':return['MĚSÍC b-I','Ledový měsíc Proximy b','Průměr 1 180 km','Těžba vody: AKTIVNÍ'];
     case'k7':return['KESTREL-7','Orbitální stanice · 412 km',`Posádka ${crew} · trup ${hull.toFixed(0)} %`,`Reaktor ${S.reactor?'ZAP':'VYP'} · štíty ${S.shield?'ZAP':'VYP'} · baterie ${RES.bat.toFixed(0)} %`];
-    case'fr':return['KARMÍN-9','Těžká nákladní loď','Trasa Proxima b ↔ c',FR.active?'V dosahu radaru stanice':'Mimo dosah radaru'];
     case'comet':return['KOMETA C/2026 K7','Periodická kometa · 150 dní','Excentricita 0,74','Ohon směřuje od hvězdy'];
     case'swarm':{const n=meteors.length+swarmQueue.length;const tt=swarmQueue.length?Math.min(...swarmQueue.map(q=>q.t)):0;
       return['METEORICKÝ ROJ',`${n} objektů na kolizním kurzu`,swarmQueue.length?`Dopad za ${Math.max(0,tt).toFixed(0)} s`:'Probíhá zásah',S.shield?'Štíty AKTIVNÍ':'⚠ ŠTÍTY VYPNUTÉ'];}
@@ -1457,7 +1581,6 @@ function drawHolo(dt,t){
   for(const o of HOBJ.slice(1))items.push({id:o.id,p:hp(o,T),r:o.r,col:o.col,kind:'planet',spin:T*.6});
   const ma=T/18*TAU,mp=[pb[0]+Math.cos(ma)*.11,pb[1]+Math.sin(ma)*.03,pb[2]+Math.sin(ma)*.11];items.push({id:'moon',p:mp,r:.014,col:'200,215,235',kind:'planet',spin:T});
   const sa=T/7*TAU,sp2=[pb[0]+Math.cos(sa)*.072,pb[1]+.012,pb[2]+Math.sin(sa)*.072];items.push({id:'k7',p:sp2,r:.012,kind:'station'});
-  const fa=T*.012,fp=[Math.cos(fa)*(.58+.47*(.5+.5*Math.sin(fa*1.7))),.05,Math.sin(fa)*(.58+.47*(.5+.5*Math.sin(fa*1.7)))];items.push({id:'fr',p:fp,r:.012,kind:'ship'});
   items.push({id:'comet',p:cometPos(T),r:.012,kind:'comet'});
   if(swarmPending||meteors.length){const tt=swarmQueue.length?Math.min(...swarmQueue.map(q=>q.t)):0,k=Math.min(1,Math.max(0,tt)/8)*.28+.03;
     items.push({id:'swarm',p:[sp2[0]+.6*k,sp2[1]+.15*k,sp2[2]-.7*k],r:.03,kind:'swarm'});}
@@ -1520,12 +1643,12 @@ function frame(now){
   speed=lerp(speed,S.warp?.03:.00025,S.warp?.9:1.6,dt);
   sweep+=dt*1.6;if(sweep>TAU){sweep-=TAU;if(S.scan)tone(1500,.25,'sine',.04);}
   updParallax(dt,t);
+  updStationMotion(dt,t);
   aiTick(dt,t);
   ctx.drawImage(bgNeb,0,0,W,H);
   drawStars(dt,t);
   drawSkyFx(dt,t);
   ctx.save();ctx.globalAlpha=1-warpA*.35;ctx.drawImage(bgPlan,0,0,W,H);ctx.restore();
-  drawFreighter(dt,t);
   drawDNA(dt,t);
   drawScanner(dt,t);
   drawShips(dt,t);
@@ -1952,46 +2075,6 @@ function drawSkyFx(dt,t){
     g=ctx.createLinearGradient(c.x,c.y,c.x+dx*L*1.3,c.y+dy*L*1.3);g.addColorStop(0,`rgba(${c.hue},.65)`);g.addColorStop(1,`rgba(${c.hue},0)`);
     ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(c.x+nx*2,c.y+ny*2);ctx.lineTo(c.x+dx*L*1.3+nx*4,c.y+dy*L*1.3+ny*4);ctx.lineTo(c.x+dx*L*1.3-nx*4,c.y+dy*L*1.3-ny*4);ctx.lineTo(c.x-nx*2,c.y-ny*2);ctx.closePath();ctx.fill();
     glow(c.x,c.y,22,c.hue,.5);glow(c.x,c.y,6,'255,255,255',1);}
-}
-
-/* ================= NÁKLADNÍ LOĎ KARMÍN-9 ================= */
-const FR={x:0,y:0,dir:-1,active:false,next:8};
-function shadeC(c,f){return`rgb(${Math.min(255,c[0]*f)|0},${Math.min(255,c[1]*f)|0},${Math.min(255,c[2]*f)|0})`;}
-function box3(X,Y,w,h,col,d){const x=ctx;
-  x.fillStyle=shadeC(col,1.3);x.beginPath();x.moveTo(X,Y);x.lineTo(X+d,Y-d*.7);x.lineTo(X+w+d,Y-d*.7);x.lineTo(X+w,Y);x.closePath();x.fill();
-  x.fillStyle=shadeC(col,.6);x.beginPath();x.moveTo(X+w,Y);x.lineTo(X+w+d,Y-d*.7);x.lineTo(X+w+d,Y+h-d*.7);x.lineTo(X+w,Y+h);x.closePath();x.fill();
-  const g=x.createLinearGradient(0,Y,0,Y+h);g.addColorStop(0,shadeC(col,1.05));g.addColorStop(1,shadeC(col,.5));x.fillStyle=g;x.fillRect(X,Y,w,h);}
-function drawFreighter(dt,t){
-  const m=Math.min(W,H),s=m*.36/300;
-  if(!FR.active){FR.next-=dt;if(FR.next<=0){FR.active=true;FR.dir=Math.random()<.5?-1:1;FR.x=FR.dir<0?W+170*s+60:-170*s-60;FR.y=H*rand(.2,.27);
-    if(Math.random()<.7)log('Radar: těžká nákladní loď KARMÍN-9 na souběžném kurzu','');}return;}
-  FR.x+=FR.dir*dt*(S.warp?420:14);
-  if(FR.x<-240*s-100||FR.x>W+240*s+100){FR.active=false;FR.next=rand(60,120);return;}
-  const x=ctx;x.save();x.translate(FR.x,FR.y+Math.sin(t*.25)*3);x.scale(FR.dir*s,s);
-  for(const ey of[-14,0,14]){const fl=.8+.2*Math.sin(t*20+ey);const g=x.createLinearGradient(-150,0,-235,0);g.addColorStop(0,`rgba(150,205,255,${.8*fl})`);g.addColorStop(1,'rgba(80,140,255,0)');
-    x.fillStyle=g;x.beginPath();x.moveTo(-150,ey-6);x.lineTo(-150-80*fl,ey);x.lineTo(-150,ey+6);x.closePath();x.fill();}
-  const red=[150,38,30],dark=[68,62,66],grey=[112,116,126];
-  box3(-148,-26,40,52,dark,8);
-  for(const ey of[-14,0,14]){x.fillStyle='#16181e';x.beginPath();x.ellipse(-149,ey,4,7,0,0,TAU);x.fill();glow(-151,ey,10,'150,205,255',.8);}
-  x.strokeStyle='rgba(0,0,0,.4)';x.lineWidth=1;for(let i=-140;i<-110;i+=8){x.beginPath();x.moveTo(i,-26);x.lineTo(i,26);x.stroke();}
-  for(const px of[-60,30]){x.fillStyle=shadeC(dark,.9);x.beginPath();x.roundRect(px,17,54,11,5);x.fill();x.fillStyle='rgba(255,180,60,.7)';x.fillRect(px+4,21,46,2);}
-  box3(-110,-16,215,34,red,8);
-  x.fillStyle=shadeC(red,.85);x.beginPath();x.moveTo(105,-16);x.lineTo(146,-6);x.lineTo(146,12);x.lineTo(105,18);x.closePath();x.fill();
-  x.fillStyle=shadeC(red,1.3);x.beginPath();x.moveTo(105,-16);x.lineTo(113,-21.6);x.lineTo(152,-10.2);x.lineTo(146,-6);x.closePath();x.fill();
-  x.fillStyle=shadeC(red,.55);x.beginPath();x.moveTo(146,-6);x.lineTo(152,-10.2);x.lineTo(152,7.8);x.lineTo(146,12);x.closePath();x.fill();
-  x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=.8;for(let i=-92;i<105;i+=18){x.beginPath();x.moveTo(i,-16);x.lineTo(i,18);x.stroke();}
-  x.beginPath();x.moveTo(-110,3);x.lineTo(105,3);x.stroke();
-  x.fillStyle='#d9a12a';x.fillRect(84,-16,8,34);x.fillStyle='#1a1a1a';for(let i=0;i<5;i++)x.fillRect(84,-14+i*7,8,3);
-  for(let i=-104;i<80;i+=5){if(((i+200)*7)%3===0)continue;x.fillStyle=`rgba(255,220,150,${Math.sin(i*1.7+t*.4)>-.4?.85:.12})`;x.fillRect(i,-9,2,1.6);x.fillRect(i,8,2,1.4);}
-  const cols=[[170,60,40],[90,95,105],[165,112,40],[130,40,40],[70,92,112],[150,70,45]];
-  for(let i=0;i<6;i++)box3(-68+i*27,-30-(i%2)*6,23,14+(i%2)*6,cols[i],6);
-  box3(-104,-54,30,38,grey,7);
-  x.fillStyle='rgba(140,220,255,.9)';x.fillRect(-100,-48,22,3);x.fillRect(-100,-41,22,2);
-  x.strokeStyle='#9aa4b4';x.lineWidth=1;x.beginPath();x.moveTo(-90,-58);x.lineTo(-90,-74);x.moveTo(-95,-68);x.lineTo(-85,-68);x.stroke();
-  if(Math.sin(t*3)>.6)glow(-90,-74,7,'255,70,70',1);
-  if(Math.sin(t*3+2)>.6)glow(152,0,7,FR.dir>0?'80,255,120':'255,70,70',1);
-  x.save();x.translate(-40,14);x.scale(FR.dir,1);x.fillStyle='rgba(235,225,210,.85)';x.font='bold 9px "Share Tech Mono",monospace';x.textAlign=FR.dir>0?'left':'right';x.fillText('KARMÍN-9',0,0);x.restore();
-  x.restore();
 }
 
 /* ================= SLAVIA TV ================= */
